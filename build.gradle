@@ -8,17 +8,19 @@ allprojects {
         }
     }
 
-    task checkstyle(type: Checkstyle) {
-        source 'src'
-        include '**/*.java'
-        include '**/*.kt'
-        exclude '**/gen/**'
+    if (tasks.findByPath('checkstyle') == null) {
+        tasks.create(name: 'checkstyle', type: Checkstyle) {
+            source 'src'
+            include '**/*.java'
+            include '**/*.kt'
+            exclude '**/gen/**'
 
-        classpath = files()
-    }
+            classpath = files()
+        }
 
-    checkstyle {
-        toolVersion = '8.3'
-        configFile file("${project.rootDir}/config/checkstyle.xml")
+        checkstyle {
+            toolVersion = '8.3'
+            configFile file("${project.rootDir}/config/checkstyle.xml")
+        }
     }
 }
