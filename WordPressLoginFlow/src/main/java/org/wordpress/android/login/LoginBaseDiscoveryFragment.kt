@@ -1,83 +1,73 @@
-package org.wordpress.android.login;
+package org.wordpress.android.login
 
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder;
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError;
-import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse;
-import org.wordpress.android.util.AppLog;
-import org.wordpress.android.util.AppLog.T;
-import org.wordpress.android.util.NetworkUtils;
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode.MAIN
+import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.WORDPRESS_COM_SITE
+import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse
+import org.wordpress.android.util.AppLog
+import org.wordpress.android.util.AppLog.T.API
+import org.wordpress.android.util.AppLog.T.NUX
+import org.wordpress.android.util.NetworkUtils
 
-public abstract class LoginBaseDiscoveryFragment extends LoginBaseFormFragment<LoginListener> {
-    LoginBaseDiscoveryListener mLoginBaseDiscoveryListener;
+abstract class LoginBaseDiscoveryFragment : LoginBaseFormFragment<LoginListener?>() {
+    @JvmField var mLoginBaseDiscoveryListener: LoginBaseDiscoveryListener? = null
 
-    public interface LoginBaseDiscoveryListener {
-        String getRequestedSiteAddress();
-        void handleWpComDiscoveryError(String failedEndpoint);
-        void handleDiscoverySuccess(String endpointAddress);
-        void handleDiscoveryError(DiscoveryError error, String failedEndpoint);
+    interface LoginBaseDiscoveryListener {
+        val requestedSiteAddress: String?
+        fun handleWpComDiscoveryError(failedEndpoint: String?)
+        fun handleDiscoverySuccess(endpointAddress: String?)
+        fun handleDiscoveryError(error: DiscoveryError?, failedEndpoint: String?)
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mLoginBaseDiscoveryListener = null;
+    override fun onDetach() {
+        super.onDetach()
+        mLoginBaseDiscoveryListener = null
     }
 
-    void initiateDiscovery() {
-        if (mLoginBaseDiscoveryListener == null || !NetworkUtils.checkConnection(getActivity())) {
+    fun initiateDiscovery() {
+        if (mLoginBaseDiscoveryListener == null || !NetworkUtils.checkConnection(activity)) {
             // Fragment was detached or there's no active network connection
-            return;
+            return
         }
 
         // Start the discovery process
-        mDispatcher.dispatch(AuthenticationActionBuilder.newDiscoverEndpointAction(
-                mLoginBaseDiscoveryListener.getRequestedSiteAddress()));
+        mDispatcher.dispatch(
+                AuthenticationActionBuilder.newDiscoverEndpointAction(mLoginBaseDiscoveryListener?.requestedSiteAddress)
+        )
     }
 
-    @SuppressWarnings("unused")
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onDiscoverySucceeded(OnDiscoveryResponse event) {
+    @Subscribe(threadMode = MAIN)
+    fun onDiscoverySucceeded(event: OnDiscoveryResponse) {
         if (mLoginBaseDiscoveryListener == null) {
             // Ignore the event if the fragment is detached
-            return;
+            return
         }
-        // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
         // bail if user canceled
-        String mRequestedSiteAddress = mLoginBaseDiscoveryListener.getRequestedSiteAddress();
-        if (mRequestedSiteAddress == null) {
-            return;
+        if (mLoginBaseDiscoveryListener?.requestedSiteAddress == null) {
+            return
         }
-
-        if (!isAdded()) {
-            return;
+        if (!isAdded) {
+            return
         }
-
-        if (event.isError()) {
-            if (isInProgress()) {
-                endProgress();
-            }
-
-            mAnalyticsListener.trackLoginFailed(event.getClass().getSimpleName(),
-                    event.error.name(), event.error.toString());
-
-            AppLog.e(T.API, "onDiscoveryResponse has error: " + event.error.name()
-                            + " - " + event.error.toString());
-            handleDiscoveryError(event.error, event.failedEndpoint);
-            return;
+        if (event.isError) {
+            endProgressIfNeeded()
+            mAnalyticsListener.trackLoginFailed(event.javaClass.simpleName, event.error.name, event.error.toString())
+            AppLog.e(API, "onDiscoveryResponse has error: " + event.error.name + " - " + event.error.toString())
+            handleDiscoveryError(event.error, event.failedEndpoint)
+            return
         }
-
-        AppLog.i(T.NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint);
-        mLoginBaseDiscoveryListener.handleDiscoverySuccess(event.xmlRpcEndpoint);
+        AppLog.i(NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint)
+        mLoginBaseDiscoveryListener?.handleDiscoverySuccess(event.xmlRpcEndpoint)
     }
 
-    private void handleDiscoveryError(DiscoveryError error, final String failedEndpoint) {
-        mAnalyticsListener.trackFailure(error.name() + " - " + failedEndpoint);
-        if (error == DiscoveryError.WORDPRESS_COM_SITE) {
-            mLoginBaseDiscoveryListener.handleWpComDiscoveryError(failedEndpoint);
+    private fun handleDiscoveryError(error: DiscoveryError, failedEndpoint: String) {
+        mAnalyticsListener.trackFailure(error.name + " - " + failedEndpoint)
+        if (error == WORDPRESS_COM_SITE) {
+            mLoginBaseDiscoveryListener?.handleWpComDiscoveryError(failedEndpoint)
         } else {
-            mLoginBaseDiscoveryListener.handleDiscoveryError(error, failedEndpoint);
+            mLoginBaseDiscoveryListener?.handleDiscoveryError(error, failedEndpoint)
         }
     }
 }
