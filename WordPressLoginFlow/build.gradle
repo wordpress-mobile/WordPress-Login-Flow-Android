@@ -5,6 +5,8 @@ buildscript {
         daggerVersion = '2.33'
         appCompatVersion = '1.0.2'
         coroutinesVersion = '1.4.3'
+        lifecycleVersion = '2.3.1'
+        archVersion = '2.1.0'
     }
     repositories {
         google()
@@ -102,10 +104,14 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
 
+    // Lifecycle
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion"
+
     // Testing
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:2.28.2'
-    testImplementation 'androidx.arch.core:core-testing:2.1.0'
+    testImplementation "androidx.arch.core:core-testing:$archVersion"
     testImplementation 'org.robolectric:robolectric:4.5.1'
     testImplementation 'org.assertj:assertj-core:3.11.1'
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
