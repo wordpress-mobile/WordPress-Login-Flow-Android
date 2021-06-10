@@ -46,7 +46,6 @@ import org.wordpress.android.login.widgets.WPLoginInputRow.OnEditorCommitListene
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T.API
 import org.wordpress.android.util.AppLog.T.NUX
-import org.wordpress.android.util.EditTextUtils
 import org.wordpress.android.util.NetworkUtils
 import org.wordpress.android.util.UrlUtils
 import java.util.HashMap
@@ -58,7 +57,6 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
         LoginBaseDiscoveryListener {
     private var mSiteAddressInput: WPLoginInputRow? = null
     private var mRequestedSiteAddress: String? = null
-    private var mLoginSiteAddressValidator: LoginSiteAddressValidator? = null
 
     @Inject lateinit var mHTTPAuthManager: HTTPAuthManager
     @Inject lateinit var mMemorizingTrustManager: MemorizingTrustManager
@@ -119,6 +117,20 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
         viewModel = ViewModelProvider(this, viewModelFactory)[LoginSiteAddressViewModel::class.java]
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewModel.isSiteAddressValid.observe(viewLifecycleOwner) { isValid ->
+            bottomButton?.isEnabled = isValid
+        }
+        viewModel.errorMessageResId.observe(viewLifecycleOwner) { resId ->
+            if (resId != null) {
+                showError(resId)
+            } else {
+                mSiteAddressInput?.setError(null)
+            }
+        }
+    }
+
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         if (savedInstanceState != null) {
@@ -126,17 +138,6 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
         } else {
             mAnalyticsListener.trackUrlFormViewed()
         }
-        mLoginSiteAddressValidator = LoginSiteAddressValidator()
-        mLoginSiteAddressValidator?.isValid?.observe(viewLifecycleOwner, { enabled ->
-            bottomButton?.isEnabled = enabled
-        })
-        mLoginSiteAddressValidator?.errorMessageResId?.observe(viewLifecycleOwner, { resId ->
-            if (resId != null) {
-                showError(resId)
-            } else {
-                mSiteAddressInput?.setError(null)
-            }
-        })
     }
 
     override fun onResume() {
@@ -150,7 +151,6 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
     }
 
     override fun onDestroyView() {
-        mLoginSiteAddressValidator?.dispose()
         mSiteAddressInput = null
         super.onDestroyView()
     }
@@ -161,7 +161,7 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
         }
         mAnalyticsListener.trackSubmitClicked()
         mLoginBaseDiscoveryListener = this
-        mRequestedSiteAddress = mLoginSiteAddressValidator?.cleanedSiteAddress
+        mRequestedSiteAddress = viewModel.cleanedSiteAddress
         val cleanedXmlrpcSuffix = UrlUtils.removeXmlrpcSuffix(mRequestedSiteAddress)
         mAnalyticsListener.trackConnectedSiteInfoRequested(cleanedXmlrpcSuffix)
         mDispatcher.dispatch(SiteActionBuilder.newFetchConnectSiteInfoAction(cleanedXmlrpcSuffix))
@@ -175,8 +175,8 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
     }
 
     override fun afterTextChanged(s: Editable) {
-        if (mSiteAddressInput != null) {
-            mLoginSiteAddressValidator?.setAddress(EditTextUtils.getText(mSiteAddressInput?.editText))
+        mSiteAddressInput?.let {
+            viewModel.setAddress(it.editText?.text?.toString().orEmpty())
         }
     }
 
