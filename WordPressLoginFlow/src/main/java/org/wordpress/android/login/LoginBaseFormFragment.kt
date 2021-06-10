@@ -4,7 +4,6 @@ import android.app.ProgressDialog
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -44,7 +43,7 @@ import org.wordpress.android.util.ToastUtils
 import org.wordpress.android.util.ToastUtils.Duration.LONG
 import javax.inject.Inject
 
-abstract class LoginBaseFormFragment<LoginListenerType> : Fragment(), TextWatcher {
+abstract class LoginBaseFormFragment<LoginListenerType> : Fragment() {
     protected var bottomButton: Button? = null
     private var mProgressDialog: ProgressDialog? = null
     @JvmField protected var mLoginListener: LoginListenerType? = null
