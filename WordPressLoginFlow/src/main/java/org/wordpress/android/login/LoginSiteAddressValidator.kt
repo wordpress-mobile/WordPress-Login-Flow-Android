@@ -1,74 +1,50 @@
-package org.wordpress.android.login;
+package org.wordpress.android.login
 
-import android.util.Patterns;
-
-import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-
-import org.wordpress.android.util.helpers.Debouncer;
-
-import java.util.concurrent.TimeUnit;
+import android.util.Patterns
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import org.wordpress.android.login.R.string
+import org.wordpress.android.util.helpers.Debouncer
+import java.util.concurrent.TimeUnit.SECONDS
 
 /**
- * Encapsulates the site address validation, cleaning, and error reporting of {@link LoginSiteAddressFragment}.
+ * Encapsulates the site address validation, cleaning, and error reporting of [LoginSiteAddressFragment].
  */
-class LoginSiteAddressValidator {
-    private static final int SECONDS_DELAY_BEFORE_SHOWING_ERROR_MESSAGE = 2;
+class LoginSiteAddressValidator @JvmOverloads constructor(
+    private val debouncer: Debouncer = Debouncer()
+) {
+    private val _isValid = MutableLiveData(false)
+    val isValid: LiveData<Boolean> = _isValid
 
-    private MutableLiveData<Boolean> mIsValid = new MutableLiveData<>();
-    private MutableLiveData<Integer> mErrorMessageResId = new MutableLiveData<>();
+    private val _errorMessageResId = MutableLiveData<Int?>()
+    val errorMessageResId: LiveData<Int?> = _errorMessageResId
 
-    private String mCleanedSiteAddress = "";
-    private final Debouncer mDebouncer;
+    var cleanedSiteAddress = ""
+        private set
 
-    @NonNull LiveData<Boolean> getIsValid() {
-        return mIsValid;
-    }
-
-    @NonNull LiveData<Integer> getErrorMessageResId() {
-        return mErrorMessageResId;
-    }
-
-    @NonNull String getCleanedSiteAddress() {
-        return mCleanedSiteAddress;
-    }
-
-    LoginSiteAddressValidator() {
-        this(new Debouncer());
-    }
-
-    LoginSiteAddressValidator(@NonNull Debouncer debouncer) {
-        mIsValid.setValue(false);
-        mDebouncer = debouncer;
-    }
-
-    void dispose() {
-        mDebouncer.shutdown();
-    }
-
-    void setAddress(@NonNull String siteAddress) {
-        mCleanedSiteAddress = cleanSiteAddress(siteAddress);
-        final boolean isValid = siteAddressIsValid(mCleanedSiteAddress);
-
-        mIsValid.setValue(isValid);
-        mErrorMessageResId.setValue(null);
+    fun setAddress(siteAddress: String) {
+        cleanedSiteAddress = cleanSiteAddress(siteAddress)
+        val isValid = siteAddressIsValid(cleanedSiteAddress)
+        _isValid.value = isValid
+        _errorMessageResId.value = null
 
         // Call debounce regardless if there was an error so that the previous Runnable will be cancelled.
-        mDebouncer.debounce(Void.class, new Runnable() {
-            @Override public void run() {
-                if (!isValid && !mCleanedSiteAddress.isEmpty()) {
-                    mErrorMessageResId.postValue(R.string.login_invalid_site_url);
-                }
+        debouncer.debounce(Void::class.java, {
+            if (!isValid && cleanedSiteAddress.isNotEmpty()) {
+                _errorMessageResId.postValue(string.login_invalid_site_url)
             }
-        }, SECONDS_DELAY_BEFORE_SHOWING_ERROR_MESSAGE, TimeUnit.SECONDS);
+        }, SECONDS_DELAY_BEFORE_SHOWING_ERROR_MESSAGE, SECONDS)
     }
 
-    private static String cleanSiteAddress(@NonNull String siteAddress) {
-        return siteAddress.trim().replaceAll("[\r\n]", "");
+    private fun cleanSiteAddress(siteAddress: String) = siteAddress.trim { it <= ' ' }.replace("[\r\n]".toRegex(), "")
+
+    private fun siteAddressIsValid(cleanedSiteAddress: String) = Patterns.WEB_URL.matcher(cleanedSiteAddress).matches()
+
+    fun dispose() {
+        debouncer.shutdown()
     }
 
-    private static boolean siteAddressIsValid(@NonNull String cleanedSiteAddress) {
-        return Patterns.WEB_URL.matcher(cleanedSiteAddress).matches();
+    companion object {
+        private const val SECONDS_DELAY_BEFORE_SHOWING_ERROR_MESSAGE = 2L
     }
 }
