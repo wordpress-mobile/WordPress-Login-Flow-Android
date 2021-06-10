@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -14,6 +12,7 @@ import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.ViewModelProvider
 import dagger.android.support.AndroidSupportInjection
 import org.greenrobot.eventbus.Subscribe
@@ -42,7 +41,6 @@ import org.wordpress.android.login.LoginMode.WOO_LOGIN_MODE
 import org.wordpress.android.login.LoginMode.WPCOM_LOGIN_ONLY
 import org.wordpress.android.login.util.SiteUtils
 import org.wordpress.android.login.widgets.WPLoginInputRow
-import org.wordpress.android.login.widgets.WPLoginInputRow.OnEditorCommitListener
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T.API
 import org.wordpress.android.util.AppLog.T.NUX
@@ -51,10 +49,7 @@ import org.wordpress.android.util.UrlUtils
 import java.util.HashMap
 import javax.inject.Inject
 
-class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
-        TextWatcher,
-        OnEditorCommitListener,
-        LoginBaseDiscoveryListener {
+class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscoveryListener {
     private var mSiteAddressInput: WPLoginInputRow? = null
     private var mRequestedSiteAddress: String? = null
 
@@ -80,12 +75,21 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
     override fun setupContent(rootView: ViewGroup?) {
         // important for accessibility - talkback
         requireActivity().setTitle(R.string.site_address_login_title)
-        mSiteAddressInput = rootView?.findViewById(R.id.login_site_address_row)
-        if (BuildConfig.DEBUG) {
-            mSiteAddressInput?.editText?.setText(BuildConfig.DEBUG_WPCOM_WEBSITE_URL)
+
+        mSiteAddressInput = rootView?.findViewById<WPLoginInputRow>(R.id.login_site_address_row)?.apply {
+            if (BuildConfig.DEBUG) {
+                editText?.setText(BuildConfig.DEBUG_WPCOM_WEBSITE_URL)
+            }
+            editText?.doAfterTextChanged {
+                viewModel.setAddress(it?.toString().orEmpty())
+            }
+            setOnEditorCommitListener {
+                if (bottomButton?.isEnabled == true) {
+                    discover()
+                }
+            }
         }
-        mSiteAddressInput?.addTextChangedListener(this)
-        mSiteAddressInput?.setOnEditorCommitListener(this)
+
         rootView?.findViewById<View>(R.id.login_site_address_help_button)?.setOnClickListener {
             mAnalyticsListener.trackShowHelpClick()
             showSiteAddressHelp()
@@ -166,23 +170,6 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
         mAnalyticsListener.trackConnectedSiteInfoRequested(cleanedXmlrpcSuffix)
         mDispatcher.dispatch(SiteActionBuilder.newFetchConnectSiteInfoAction(cleanedXmlrpcSuffix))
         startProgress()
-    }
-
-    override fun onEditorCommit() {
-        if (bottomButton?.isEnabled == true) {
-            discover()
-        }
-    }
-
-    override fun afterTextChanged(s: Editable) {
-        mSiteAddressInput?.let {
-            viewModel.setAddress(it.editText?.text?.toString().orEmpty())
-        }
-    }
-
-    override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
-    override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-        mSiteAddressInput?.setError(null)
     }
 
     private fun showError(messageId: Int) {
