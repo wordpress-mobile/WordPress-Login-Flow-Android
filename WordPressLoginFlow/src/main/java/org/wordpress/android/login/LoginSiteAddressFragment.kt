@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.ViewModelProvider
 import dagger.android.support.AndroidSupportInjection
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode.MAIN
@@ -62,6 +63,9 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
     @Inject lateinit var mHTTPAuthManager: HTTPAuthManager
     @Inject lateinit var mMemorizingTrustManager: MemorizingTrustManager
 
+    @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
+    private lateinit var viewModel: LoginSiteAddressViewModel
+
     @get:LayoutRes override val contentLayout: Int
         get() = R.layout.login_site_address_screen
     @get:LayoutRes override val progressBarText: Int
@@ -108,6 +112,11 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(),
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
         super.onAttach(context)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(this, viewModelFactory)[LoginSiteAddressViewModel::class.java]
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
