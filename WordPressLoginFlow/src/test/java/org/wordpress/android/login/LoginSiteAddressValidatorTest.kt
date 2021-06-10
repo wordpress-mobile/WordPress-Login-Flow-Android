@@ -1,110 +1,81 @@
-package org.wordpress.android.login;
+package org.wordpress.android.login
 
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import androidx.lifecycle.Observer;
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.Mockito.doAnswer
+import org.mockito.Mockito.mock
+import org.robolectric.RobolectricTestRunner
+import org.wordpress.android.util.helpers.Debouncer
+import java.util.ArrayList
+import java.util.Arrays
+import java.util.Optional
+import java.util.concurrent.TimeUnit
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.robolectric.RobolectricTestRunner;
-import org.wordpress.android.util.helpers.Debouncer;
+@RunWith(RobolectricTestRunner::class)
+class LoginSiteAddressValidatorTest {
+    @Rule @JvmField var instantTaskExecutorRule = InstantTaskExecutorRule()
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+    private lateinit var debouncer: Debouncer
+    private lateinit var validator: LoginSiteAddressValidator
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-
-@RunWith(RobolectricTestRunner.class)
-public class LoginSiteAddressValidatorTest {
-    @Rule
-    public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
-
-    private Debouncer mDebouncer;
-    private LoginSiteAddressValidator mValidator;
-
-    @Before
-    public void setUp() {
-        mDebouncer = mock(Debouncer.class);
-        doAnswer(new Answer<Void>() {
-            @Override public Void answer(InvocationOnMock invocation) {
-                final Runnable runnable = invocation.getArgument(1);
-                runnable.run();
-                return null;
-            }
-        }).when(mDebouncer).debounce(any(), any(Runnable.class), anyLong(), any(TimeUnit.class));
-
-        mValidator = new LoginSiteAddressValidator(mDebouncer);
+    @Before fun setUp() {
+        debouncer = mock(Debouncer::class.java)
+        doAnswer {
+            it.getArgument<Runnable>(1).run()
+            null
+        }.`when`(debouncer).debounce(any(), any(Runnable::class.java), anyLong(), any(TimeUnit::class.java))
+        validator = LoginSiteAddressValidator(debouncer)
     }
 
-    @After
-    public void tearDown() {
-        mValidator = null;
-        mDebouncer = null;
-    }
-
-    @Test
-    public void testAnErrorIsReturnedWhenGivenAnInvalidAddress() {
+    @Test fun testAnErrorIsReturnedWhenGivenAnInvalidAddress() {
         // Arrange
-        assertThat(mValidator.getErrorMessageResId().getValue()).isNull();
+        assertThat(validator.errorMessageResId.value).isNull()
 
         // Act
-        mValidator.setAddress("invalid");
+        validator.setAddress("invalid")
 
         // Assert
-        assertThat(mValidator.getErrorMessageResId().getValue()).isNotNull();
-        assertThat(mValidator.getCleanedSiteAddress()).isEqualTo("invalid");
-        assertThat(mValidator.getIsValid().getValue()).isFalse();
+        assertThat(validator.errorMessageResId.value).isNotNull
+        assertThat(validator.cleanedSiteAddress).isEqualTo("invalid")
+        assertThat(validator.isValid.value).isFalse
     }
 
-    @Test
-    public void testNoErrorIsReturnedButIsInvalidWhenGivenAnEmptyAddress() {
+    @Test fun testNoErrorIsReturnedButIsInvalidWhenGivenAnEmptyAddress() {
         // Act
-        mValidator.setAddress("");
+        validator.setAddress("")
 
         // Assert
-        assertThat(mValidator.getErrorMessageResId().getValue()).isNull();
-        assertThat(mValidator.getIsValid().getValue()).isFalse();
-        assertThat(mValidator.getCleanedSiteAddress()).isEqualTo("");
+        assertThat(validator.errorMessageResId.value).isNull()
+        assertThat(validator.isValid.value).isFalse
+        assertThat(validator.cleanedSiteAddress).isEqualTo("")
     }
 
-    @Test
-    public void testTheErrorIsImmediatelyClearedWhenANewAddressIsGiven() {
+    @Test fun testTheErrorIsImmediatelyClearedWhenANewAddressIsGiven() {
         // Arrange
-        final ArrayList<Optional<Integer>> resIdValues = new ArrayList<>();
-        mValidator.getErrorMessageResId().observeForever(new Observer<Integer>() {
-            @Override public void onChanged(Integer resId) {
-                resIdValues.add(Optional.ofNullable(resId));
-            }
-        });
+        val resIdValues = ArrayList<Optional<Int>>()
+        validator.errorMessageResId.observeForever { resId -> resIdValues.add(Optional.ofNullable(resId)) }
 
         // Act
-        mValidator.setAddress("invalid");
-        mValidator.setAddress("another-invalid");
+        validator.setAddress("invalid")
+        validator.setAddress("another-invalid")
 
         // Assert
-        assertThat(resIdValues).hasSize(4);
-        assertThat(resIdValues.get(0)).isEmpty();
-        assertThat(resIdValues.get(1)).isNotEmpty();
-        assertThat(resIdValues.get(2)).isEmpty();
-        assertThat(resIdValues.get(3)).isNotEmpty();
+        assertThat(resIdValues).hasSize(4)
+        assertThat(resIdValues[0]).isEmpty
+        assertThat(resIdValues[1]).isNotEmpty
+        assertThat(resIdValues[2]).isEmpty
+        assertThat(resIdValues[3]).isNotEmpty
     }
 
-    @Test
-    public void testItReturnsValidWhenGivenValidURLs() {
+    @Test fun testItReturnsValidWhenGivenValidURLs() {
         // Arrange
-        final List<String> validUrls = Arrays.asList(
+        val validUrls = Arrays.asList(
                 "http://subdomain.example.com",
                 "http://example.ca",
                 "example.ca",
@@ -114,16 +85,14 @@ public class LoginSiteAddressValidatorTest {
                 "http://subdomain.example.com/folder/over/there ",
                 "7.7.7.7",
                 "http://7.7.13.45",
-                "http://47.147.43.45/folder   ");
+                "http://47.147.43.45/folder   "
+        )
 
         // Act and Assert
-        assertThat(validUrls).allSatisfy(new Consumer<String>() {
-            @Override public void accept(String url) {
-                mValidator.setAddress(url);
-
-                assertThat(mValidator.getErrorMessageResId().getValue()).isNull();
-                assertThat(mValidator.getIsValid().getValue()).isTrue();
-            }
-        });
+        assertThat(validUrls).allSatisfy { url ->
+            validator.setAddress(url!!)
+            assertThat(validator.errorMessageResId.value).isNull()
+            assertThat(validator.isValid.value).isTrue
+        }
     }
 }
