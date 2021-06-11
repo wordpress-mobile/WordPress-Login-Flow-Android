@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider
 import dagger.android.support.AndroidSupportInjection
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode.MAIN
+import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder
 import org.wordpress.android.fluxc.generated.SiteActionBuilder
 import org.wordpress.android.fluxc.network.HTTPAuthManager
 import org.wordpress.android.fluxc.network.MemorizingTrustManager
@@ -30,9 +31,9 @@ import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.Di
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.WORDPRESS_COM_SITE
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_BLOCKED
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_FORBIDDEN
+import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse
 import org.wordpress.android.fluxc.store.SiteStore.ConnectSiteInfoPayload
 import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked
-import org.wordpress.android.login.LoginBaseDiscoveryFragment.LoginBaseDiscoveryListener
 import org.wordpress.android.login.LoginListener.SelfSignedSSLCallback
 import org.wordpress.android.login.LoginMode.JETPACK_LOGIN_ONLY
 import org.wordpress.android.login.LoginMode.SELFHOSTED_ONLY
@@ -49,7 +50,7 @@ import org.wordpress.android.util.UrlUtils
 import java.util.HashMap
 import javax.inject.Inject
 
-class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscoveryListener {
+class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     private var mSiteAddressInput: WPLoginInputRow? = null
     private var mRequestedSiteAddress: String? = null
 
@@ -164,7 +165,6 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscover
             return
         }
         mAnalyticsListener.trackSubmitClicked()
-        mLoginBaseDiscoveryListener = this
         mRequestedSiteAddress = viewModel.cleanedSiteAddress
         val cleanedXmlrpcSuffix = UrlUtils.removeXmlrpcSuffix(mRequestedSiteAddress)
         mAnalyticsListener.trackConnectedSiteInfoRequested(cleanedXmlrpcSuffix)
@@ -183,10 +183,8 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscover
         mRequestedSiteAddress = null
     }
 
-    override val requestedSiteAddress: String?
-        get() = mRequestedSiteAddress
-
-    override fun handleDiscoveryError(error: DiscoveryError?, failedEndpoint: String?) {
+    private fun handleDiscoveryError(error: DiscoveryError?, failedEndpoint: String?) {
+        mAnalyticsListener.trackFailure(error?.name + " - " + failedEndpoint)
         when (error) {
             ERRONEOUS_SSL_CERTIFICATE -> mLoginListener?.handleSslCertificateError(
                     mMemorizingTrustManager,
@@ -204,16 +202,14 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscover
                 mAnalyticsListener.trackInsertedInvalidUrl()
             }
             MISSING_XMLRPC_METHOD -> showError(R.string.xmlrpc_missing_method_error)
-            WORDPRESS_COM_SITE -> {
-                // This is handled by handleWpComDiscoveryError
-            }
+            WORDPRESS_COM_SITE -> handleWpComDiscoveryError(failedEndpoint)
             XMLRPC_BLOCKED -> showError(R.string.xmlrpc_post_blocked_error)
             XMLRPC_FORBIDDEN -> showError(R.string.xmlrpc_endpoint_forbidden_error)
             GENERIC_ERROR -> showError(R.string.error_generic)
         }
     }
 
-    override fun handleWpComDiscoveryError(failedEndpoint: String?) {
+    private fun handleWpComDiscoveryError(failedEndpoint: String?) {
         AppLog.e(API, "Inputted a wpcom address in site address screen.")
 
         // If the user is already logged in a wordpress.com account, bail out
@@ -227,7 +223,7 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscover
         }
     }
 
-    override fun handleDiscoverySuccess(endpointAddress: String?) {
+    private fun handleDiscoverySuccess(endpointAddress: String?) {
         AppLog.i(NUX, "Discovery succeeded, endpoint: $endpointAddress")
 
         // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
@@ -372,6 +368,36 @@ class LoginSiteAddressFragment : LoginBaseDiscoveryFragment(), LoginBaseDiscover
         properties[KEY_SITE_INFO_IS_WPCOM] = siteInfo.isWPCom.toString()
         properties[KEY_SITE_INFO_CALCULATED_HAS_JETPACK] = hasJetpack.toString()
         return properties
+    }
+
+    private fun initiateDiscovery() {
+        if (!NetworkUtils.checkConnection(activity)) {
+            // There's no active network connection
+            return
+        }
+
+        // Start the discovery process
+        mDispatcher.dispatch(AuthenticationActionBuilder.newDiscoverEndpointAction(mRequestedSiteAddress))
+    }
+
+    @Subscribe(threadMode = MAIN)
+    fun onDiscoverySucceeded(event: OnDiscoveryResponse) {
+        // bail if user canceled
+        if (mRequestedSiteAddress == null) {
+            return
+        }
+        if (!isAdded) {
+            return
+        }
+        if (event.isError) {
+            endProgressIfNeeded()
+            mAnalyticsListener.trackLoginFailed(event.javaClass.simpleName, event.error.name, event.error.toString())
+            AppLog.e(API, "onDiscoveryResponse has error: " + event.error.name + " - " + event.error.toString())
+            handleDiscoveryError(event.error, event.failedEndpoint)
+            return
+        }
+        AppLog.i(NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint)
+        handleDiscoverySuccess(event.xmlRpcEndpoint)
     }
 
     companion object {
