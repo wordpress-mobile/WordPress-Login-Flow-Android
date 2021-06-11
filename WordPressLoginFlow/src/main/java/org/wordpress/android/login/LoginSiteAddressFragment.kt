@@ -86,7 +86,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
             }
             setOnEditorCommitListener {
                 if (bottomButton?.isEnabled == true) {
-                    discover()
+                    submit()
                 }
             }
         }
@@ -98,7 +98,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     }
 
     override fun setupBottomButton(button: Button?) {
-        button?.setOnClickListener { discover() }
+        button?.setOnClickListener { submit() }
     }
 
     override fun buildToolbar(toolbar: Toolbar?, actionBar: ActionBar) {
@@ -156,7 +156,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
         super.onDestroyView()
     }
 
-    private fun discover() {
+    private fun submit() {
         if (!NetworkUtils.checkConnection(activity)) {
             return
         }
@@ -189,7 +189,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
                             return@SelfSignedSSLCallback
                         }
                         // retry site lookup
-                        discover()
+                        submit()
                     })
             HTTP_AUTH_REQUIRED -> failedEndpoint?.let { askForHttpAuthCredentials(it) }
             NO_SITE_ERROR -> showError(R.string.no_site_error)
@@ -246,7 +246,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
                 val httpUsername = data.getStringExtra(LoginHttpAuthDialogFragment.ARG_USERNAME)
                 val httpPassword = data.getStringExtra(LoginHttpAuthDialogFragment.ARG_PASSWORD)
                 mHTTPAuthManager.addHTTPAuthCredentials(httpUsername, httpPassword, url, null)
-                discover()
+                submit()
             }
         }
     }
