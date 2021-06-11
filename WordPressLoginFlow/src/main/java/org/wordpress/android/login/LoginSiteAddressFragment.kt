@@ -124,15 +124,11 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel.isSiteAddressValid.observe(viewLifecycleOwner) { isValid ->
-            bottomButton?.isEnabled = isValid
+        viewModel.onEnableSubmitButton.observe(viewLifecycleOwner) { enable ->
+            bottomButton?.isEnabled = enable
         }
-        viewModel.errorMessageResId.observe(viewLifecycleOwner) { resId ->
-            if (resId != null) {
-                showError(resId)
-            } else {
-                mSiteAddressInput?.setError(null)
-            }
+        viewModel.onInputErrorMessage.observe(viewLifecycleOwner) { errorMessage ->
+            mSiteAddressInput?.setError(errorMessage)
         }
     }
 
