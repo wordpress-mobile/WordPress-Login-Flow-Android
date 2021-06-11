@@ -17,8 +17,6 @@ import androidx.lifecycle.ViewModelProvider
 import dagger.android.support.AndroidSupportInjection
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode.MAIN
-import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder
-import org.wordpress.android.fluxc.generated.SiteActionBuilder
 import org.wordpress.android.fluxc.network.HTTPAuthManager
 import org.wordpress.android.fluxc.network.MemorizingTrustManager
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError
@@ -32,22 +30,18 @@ import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.Di
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_BLOCKED
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_FORBIDDEN
 import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse
-import org.wordpress.android.fluxc.store.SiteStore.ConnectSiteInfoPayload
-import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked
 import org.wordpress.android.login.LoginListener.SelfSignedSSLCallback
-import org.wordpress.android.login.LoginMode.JETPACK_LOGIN_ONLY
-import org.wordpress.android.login.LoginMode.SELFHOSTED_ONLY
 import org.wordpress.android.login.LoginMode.SHARE_INTENT
-import org.wordpress.android.login.LoginMode.WOO_LOGIN_MODE
-import org.wordpress.android.login.LoginMode.WPCOM_LOGIN_ONLY
+import org.wordpress.android.login.LoginSiteAddressResult.GotConnectedSiteInfo
+import org.wordpress.android.login.LoginSiteAddressResult.GotWpComSiteInfo
+import org.wordpress.android.login.LoginSiteAddressResult.HandleSiteAddressError
 import org.wordpress.android.login.util.SiteUtils
+import org.wordpress.android.login.util.observeEvent
 import org.wordpress.android.login.widgets.WPLoginInputRow
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T.API
 import org.wordpress.android.util.AppLog.T.NUX
-import org.wordpress.android.util.NetworkUtils
-import org.wordpress.android.util.UrlUtils
-import java.util.HashMap
+import org.wordpress.android.util.ToastUtils
 import javax.inject.Inject
 
 class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
@@ -84,11 +78,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
             editText?.doAfterTextChanged {
                 viewModel.setAddress(it?.toString().orEmpty())
             }
-            setOnEditorCommitListener {
-                if (bottomButton?.isEnabled == true) {
-                    submit()
-                }
-            }
+            setOnEditorCommitListener { submit() }
         }
 
         rootView?.findViewById<View>(R.id.login_site_address_help_button)?.setOnClickListener {
@@ -130,6 +120,27 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
         viewModel.onInputErrorMessage.observe(viewLifecycleOwner) { errorMessage ->
             mSiteAddressInput?.setError(errorMessage)
         }
+        viewModel.onToastMessage.observeEvent(viewLifecycleOwner) { message ->
+            ToastUtils.showToast(requireContext(), message)
+        }
+        viewModel.onShowProgress.observe(viewLifecycleOwner) { show ->
+            if (show) {
+                startProgressIfNeeded()
+            } else {
+                endProgressIfNeeded()
+            }
+        }
+        viewModel.onResult.observeEvent(viewLifecycleOwner) { result ->
+            when (result) {
+                is GotConnectedSiteInfo -> mLoginListener?.gotConnectedSiteInfo(
+                        result.siteAddress,
+                        result.siteAddressAfterRedirects,
+                        result.hasJetpack
+                )
+                is HandleSiteAddressError -> mLoginListener?.handleSiteAddressError(result.siteInfo)
+                is GotWpComSiteInfo -> mLoginListener?.gotWpcomSiteInfo(result.siteAddress)
+            }
+        }
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -157,15 +168,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     }
 
     private fun submit() {
-        if (!NetworkUtils.checkConnection(activity)) {
-            return
-        }
-        mAnalyticsListener.trackSubmitClicked()
-        mRequestedSiteAddress = viewModel.cleanedSiteAddress
-        val cleanedXmlrpcSuffix = UrlUtils.removeXmlrpcSuffix(mRequestedSiteAddress)
-        mAnalyticsListener.trackConnectedSiteInfoRequested(cleanedXmlrpcSuffix)
-        mDispatcher.dispatch(SiteActionBuilder.newFetchConnectSiteInfoAction(cleanedXmlrpcSuffix))
-        startProgress()
+        mLoginListener?.loginMode?.let { viewModel.submit(it) }
     }
 
     private fun showError(messageId: Int) {
