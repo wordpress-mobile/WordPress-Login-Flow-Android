@@ -7,22 +7,44 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.wordpress.android.fluxc.network.HTTPAuthManager
+import org.wordpress.android.fluxc.network.MemorizingTrustManager
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.ERRONEOUS_SSL_CERTIFICATE
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.GENERIC_ERROR
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.HTTP_AUTH_REQUIRED
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.INVALID_URL
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.MISSING_XMLRPC_METHOD
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.NO_SITE_ERROR
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.WORDPRESS_COM_SITE
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_BLOCKED
+import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_FORBIDDEN
+import org.wordpress.android.fluxc.store.AccountStore
+import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse
+import org.wordpress.android.fluxc.store.SiteStore
 import org.wordpress.android.fluxc.store.SiteStore.ConnectSiteInfoPayload
 import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked
-import org.wordpress.android.fluxc.utils.AppLogWrapper
 import org.wordpress.android.login.LoginMode.JETPACK_LOGIN_ONLY
 import org.wordpress.android.login.LoginMode.SELFHOSTED_ONLY
 import org.wordpress.android.login.LoginMode.WOO_LOGIN_MODE
 import org.wordpress.android.login.LoginMode.WPCOM_LOGIN_ONLY
+import org.wordpress.android.login.LoginSiteAddressNavigation.ShowHttpAuthDialog
+import org.wordpress.android.login.LoginSiteAddressResult.AlreadyLoggedInWpCom
 import org.wordpress.android.login.LoginSiteAddressResult.GotConnectedSiteInfo
 import org.wordpress.android.login.LoginSiteAddressResult.GotWpComSiteInfo
+import org.wordpress.android.login.LoginSiteAddressResult.GotXmlRpcEndpoint
 import org.wordpress.android.login.LoginSiteAddressResult.HandleSiteAddressError
+import org.wordpress.android.login.LoginSiteAddressResult.HandleSslCertificateError
+import org.wordpress.android.login.actions.DiscoverEndpoint
 import org.wordpress.android.login.actions.FetchSiteInfo
+import org.wordpress.android.login.util.AppLogWrapper
 import org.wordpress.android.login.util.Event
 import org.wordpress.android.login.util.NetworkUtilsWrapper
 import org.wordpress.android.login.util.ResourceProvider
+import org.wordpress.android.login.util.SiteUtilsWrapper
 import org.wordpress.android.login.util.UrlUtilsWrapper
 import org.wordpress.android.util.AppLog.T.API
+import org.wordpress.android.util.AppLog.T.NUX
 import javax.inject.Inject
 
 class LoginSiteAddressViewModel @Inject constructor(
@@ -30,8 +52,14 @@ class LoginSiteAddressViewModel @Inject constructor(
     val appLog: AppLogWrapper,
     val networkUtils: NetworkUtilsWrapper,
     val urlUtils: UrlUtilsWrapper,
+    val siteUtils: SiteUtilsWrapper,
     val resourceProvider: ResourceProvider,
-    val fetchSiteInfo: FetchSiteInfo
+    val httpAuthManager: HTTPAuthManager,
+    val memorizingTrustManager: MemorizingTrustManager,
+    val accountStore: AccountStore,
+    val siteStore: SiteStore,
+    val fetchSiteInfo: FetchSiteInfo,
+    val discoverEndpoint: DiscoverEndpoint
 ) : ViewModel() {
     private val siteAddressValidator = LoginSiteAddressValidator()
 
@@ -58,10 +86,14 @@ class LoginSiteAddressViewModel @Inject constructor(
     private val _onResult = MutableLiveData<Event<LoginSiteAddressResult>>()
     val onResult: LiveData<Event<LoginSiteAddressResult>> = _onResult
 
+    private val _onNavigation = MutableLiveData<Event<LoginSiteAddressNavigation>>()
+    val onNavigation: LiveData<Event<LoginSiteAddressNavigation>> = _onNavigation
+
     override fun onCleared() {
         super.onCleared()
         siteAddressValidator.dispose()
         fetchSiteInfo.dispose()
+        discoverEndpoint.dispose()
     }
 
     fun setAddress(siteAddress: String) {
@@ -93,7 +125,7 @@ class LoginSiteAddressViewModel @Inject constructor(
         }
     }
 
-    private fun onFetchedConnectSiteInfo(
+    private suspend fun onFetchedConnectSiteInfo(
         event: OnConnectSiteInfoChecked,
         requestedSiteAddress: String,
         loginMode: LoginMode
@@ -114,7 +146,7 @@ class LoginSiteAddressViewModel @Inject constructor(
             when (loginMode) {
                 WOO_LOGIN_MODE -> handleConnectSiteInfoForWoo(event.info, hasJetpack)
                 JETPACK_LOGIN_ONLY -> handleConnectSiteInfoForJetpack(event.info)
-                else -> handleConnectSiteInfoForWordPress(event.info, loginMode)
+                else -> handleConnectSiteInfoForWordPress(event.info, loginMode, requestedSiteAddress)
             }
         }
     }
@@ -140,14 +172,18 @@ class LoginSiteAddressViewModel @Inject constructor(
         }
     }
 
-    private fun handleConnectSiteInfoForWordPress(siteInfo: ConnectSiteInfoPayload, loginMode: LoginMode) {
+    private suspend fun handleConnectSiteInfoForWordPress(
+        siteInfo: ConnectSiteInfoPayload,
+        loginMode: LoginMode,
+        requestedSiteAddress: String
+    ) {
         if (siteInfo.isWPCom) {
             // It's a Simple or Atomic site
             if (loginMode == SELFHOSTED_ONLY) {
                 // We're only interested in self-hosted sites
                 if (siteInfo.hasJetpack) {
                     // This is an Atomic site, so treat it as self-hosted and start the discovery process
-                    initiateDiscovery()
+                    initiateDiscovery(requestedSiteAddress, loginMode)
                     return
                 }
             }
@@ -161,7 +197,7 @@ class LoginSiteAddressViewModel @Inject constructor(
                 _onShowProgress.postValue(false)
             } else {
                 // Start the discovery process
-                initiateDiscovery()
+                initiateDiscovery(requestedSiteAddress, loginMode)
             }
         }
     }
@@ -213,8 +249,91 @@ class LoginSiteAddressViewModel @Inject constructor(
             KEY_SITE_INFO_CALCULATED_HAS_JETPACK to hasJetpack.toString()
     )
 
-    private fun initiateDiscovery() {
-        TODO("Not yet implemented")
+    private suspend fun initiateDiscovery(requestedSiteAddress: String, loginMode: LoginMode) {
+        if (!networkUtils.isNetworkAvailable()) {
+            // There's no active network connection
+            return
+        }
+
+        // Start the discovery process
+        val result = discoverEndpoint.discoverEndpoint(requestedSiteAddress)
+        onDiscoverySucceeded(result, requestedSiteAddress, loginMode)
+    }
+
+    private fun onDiscoverySucceeded(
+        event: OnDiscoveryResponse,
+        requestedSiteAddress: String,
+        loginMode: LoginMode
+    ) {
+        if (event.isError) {
+            _onShowProgress.postValue(false)
+            analyticsListener.trackLoginFailed(event.javaClass.simpleName, event.error.name, event.error.toString())
+            appLog.e(API, "onDiscoveryResponse has error: " + event.error.name + " - " + event.error.toString())
+            handleDiscoveryError(event.error, event.failedEndpoint, loginMode)
+            return
+        }
+        appLog.i(NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint)
+        handleDiscoverySuccess(event.xmlRpcEndpoint, requestedSiteAddress)
+    }
+
+    private fun handleDiscoveryError(
+        error: DiscoveryError,
+        failedEndpoint: String?,
+        loginMode: LoginMode
+    ) {
+        analyticsListener.trackFailure(error.name + " - " + failedEndpoint)
+        when (error) {
+            ERRONEOUS_SSL_CERTIFICATE -> handleSslCertificateError(loginMode)
+            HTTP_AUTH_REQUIRED -> failedEndpoint?.let { askForHttpAuthCredentials(it) }
+            NO_SITE_ERROR -> showError(R.string.no_site_error)
+            INVALID_URL -> {
+                showError(R.string.invalid_site_url_message)
+                analyticsListener.trackInsertedInvalidUrl()
+            }
+            MISSING_XMLRPC_METHOD -> showError(R.string.xmlrpc_missing_method_error)
+            WORDPRESS_COM_SITE -> failedEndpoint?.let { handleWpComDiscoveryError(it) }
+            XMLRPC_BLOCKED -> showError(R.string.xmlrpc_post_blocked_error)
+            XMLRPC_FORBIDDEN -> showError(R.string.xmlrpc_endpoint_forbidden_error)
+            GENERIC_ERROR -> showError(R.string.error_generic)
+        }
+    }
+
+    private fun handleSslCertificateError(loginMode: LoginMode) {
+        val result = HandleSslCertificateError(memorizingTrustManager) {
+            // retry site lookup
+            submit(loginMode) // TODO Maybe we should call initiateDiscovery directly here?
+        }
+        _onResult.postValue(Event(result))
+    }
+
+    private fun handleWpComDiscoveryError(failedEndpoint: String) {
+        appLog.e(API, "Inputted a wpcom address in site address screen.")
+
+        // If the user is already logged in a wordpress.com account, bail out
+        if (accountStore.hasAccessToken()) {
+            val currentUsername = accountStore.account.userName
+            appLog.e(NUX, "User is already logged in WordPress.com: $currentUsername")
+            val oldSitesIDs = siteUtils.getCurrentSiteIds(siteStore, true)
+            _onResult.postValue(Event(AlreadyLoggedInWpCom(oldSitesIDs)))
+        } else {
+            _onResult.postValue(Event(GotWpComSiteInfo(failedEndpoint)))
+        }
+    }
+
+    private fun handleDiscoverySuccess(endpointAddress: String, requestedSiteAddress: String) {
+        appLog.i(NUX, "Discovery succeeded, endpoint: $endpointAddress")
+
+        _onShowProgress.postValue(false)
+        _onResult.postValue(Event(GotXmlRpcEndpoint(requestedSiteAddress, endpointAddress)))
+    }
+
+    private fun askForHttpAuthCredentials(url: String) {
+        _onNavigation.postValue(Event(ShowHttpAuthDialog(url)))
+    }
+
+    fun submitHttpCredentials(loginMode: LoginMode, httpUsername: String, httpPassword: String, url: String) {
+        httpAuthManager.addHTTPAuthCredentials(httpUsername, httpPassword, url, null)
+        submit(loginMode) // TODO Maybe we should call initiateDiscovery directly here?
     }
 
     companion object {

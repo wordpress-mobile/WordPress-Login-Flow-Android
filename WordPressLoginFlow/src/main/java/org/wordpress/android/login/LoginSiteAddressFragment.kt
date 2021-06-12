@@ -15,41 +15,21 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.ViewModelProvider
 import dagger.android.support.AndroidSupportInjection
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode.MAIN
-import org.wordpress.android.fluxc.network.HTTPAuthManager
-import org.wordpress.android.fluxc.network.MemorizingTrustManager
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.ERRONEOUS_SSL_CERTIFICATE
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.GENERIC_ERROR
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.HTTP_AUTH_REQUIRED
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.INVALID_URL
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.MISSING_XMLRPC_METHOD
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.NO_SITE_ERROR
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.WORDPRESS_COM_SITE
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_BLOCKED
-import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError.XMLRPC_FORBIDDEN
-import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse
-import org.wordpress.android.login.LoginListener.SelfSignedSSLCallback
 import org.wordpress.android.login.LoginMode.SHARE_INTENT
+import org.wordpress.android.login.LoginSiteAddressNavigation.ShowHttpAuthDialog
+import org.wordpress.android.login.LoginSiteAddressResult.AlreadyLoggedInWpCom
 import org.wordpress.android.login.LoginSiteAddressResult.GotConnectedSiteInfo
 import org.wordpress.android.login.LoginSiteAddressResult.GotWpComSiteInfo
+import org.wordpress.android.login.LoginSiteAddressResult.GotXmlRpcEndpoint
 import org.wordpress.android.login.LoginSiteAddressResult.HandleSiteAddressError
-import org.wordpress.android.login.util.SiteUtils
+import org.wordpress.android.login.LoginSiteAddressResult.HandleSslCertificateError
 import org.wordpress.android.login.util.observeEvent
 import org.wordpress.android.login.widgets.WPLoginInputRow
-import org.wordpress.android.util.AppLog
-import org.wordpress.android.util.AppLog.T.API
-import org.wordpress.android.util.AppLog.T.NUX
 import org.wordpress.android.util.ToastUtils
 import javax.inject.Inject
 
 class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     private var mSiteAddressInput: WPLoginInputRow? = null
-    private var mRequestedSiteAddress: String? = null
-
-    @Inject lateinit var mHTTPAuthManager: HTTPAuthManager
-    @Inject lateinit var mMemorizingTrustManager: MemorizingTrustManager
 
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
     private lateinit var viewModel: LoginSiteAddressViewModel
@@ -59,6 +39,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     @get:LayoutRes override val progressBarText: Int
         get() = R.string.login_checking_site_address
 
+    // TODO Move to ViewModel
     override fun setupLabel(label: TextView?) {
         if (mLoginListener?.loginMode == SHARE_INTENT) {
             label?.setText(R.string.enter_site_address_share_intent)
@@ -82,6 +63,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
         }
 
         rootView?.findViewById<View>(R.id.login_site_address_help_button)?.setOnClickListener {
+            // TODO Move to ViewModel
             mAnalyticsListener.trackShowHelpClick()
             showSiteAddressHelp()
         }
@@ -92,6 +74,7 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     }
 
     override fun buildToolbar(toolbar: Toolbar?, actionBar: ActionBar) {
+        // TODO Move to ViewModel
         actionBar.setTitle(R.string.log_in)
     }
 
@@ -99,7 +82,8 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
         get() = mSiteAddressInput?.editText
 
     override fun onHelp() {
-        mLoginListener?.helpSiteAddress(mRequestedSiteAddress)
+        // TODO Move to ViewModel
+        mLoginListener?.helpSiteAddress(null)
     }
 
     override fun onAttach(context: Context) {
@@ -139,27 +123,36 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
                 )
                 is HandleSiteAddressError -> mLoginListener?.handleSiteAddressError(result.siteInfo)
                 is GotWpComSiteInfo -> mLoginListener?.gotWpcomSiteInfo(result.siteAddress)
+                is GotXmlRpcEndpoint -> mLoginListener?.gotXmlRpcEndpoint(
+                        result.inputSiteAddress,
+                        result.endpointSiteAddress
+                )
+                is AlreadyLoggedInWpCom -> mLoginListener?.alreadyLoggedInWpcom(ArrayList(result.oldSitesIds))
+                is HandleSslCertificateError -> mLoginListener?.handleSslCertificateError(
+                        result.memorizingTrustManager,
+                        result.selfSignedSSLCallback
+                )
+            }
+        }
+        viewModel.onNavigation.observeEvent(viewLifecycleOwner) { event ->
+            when (event) {
+                is ShowHttpAuthDialog -> askForHttpAuthCredentials(event.url)
             }
         }
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        if (savedInstanceState != null) {
-            mRequestedSiteAddress = savedInstanceState.getString(KEY_REQUESTED_SITE_ADDRESS)
-        } else {
+        if (savedInstanceState == null) {
+            // TODO Move to ViewModel
             mAnalyticsListener.trackUrlFormViewed()
         }
     }
 
     override fun onResume() {
         super.onResume()
+        // TODO Move to ViewModel
         mAnalyticsListener.siteAddressFormScreenResumed()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(KEY_REQUESTED_SITE_ADDRESS, mRequestedSiteAddress)
     }
 
     override fun onDestroyView() {
@@ -169,66 +162,6 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
 
     private fun submit() {
         mLoginListener?.loginMode?.let { viewModel.submit(it) }
-    }
-
-    private fun showError(messageId: Int) {
-        val message = getString(messageId)
-        mAnalyticsListener.trackFailure(message)
-        mSiteAddressInput?.setError(message)
-    }
-
-    override fun endProgress() {
-        super.endProgress()
-        mRequestedSiteAddress = null
-    }
-
-    private fun handleDiscoveryError(error: DiscoveryError?, failedEndpoint: String?) {
-        mAnalyticsListener.trackFailure(error?.name + " - " + failedEndpoint)
-        when (error) {
-            ERRONEOUS_SSL_CERTIFICATE -> mLoginListener?.handleSslCertificateError(
-                    mMemorizingTrustManager,
-                    SelfSignedSSLCallback {
-                        if (failedEndpoint == null) {
-                            return@SelfSignedSSLCallback
-                        }
-                        // retry site lookup
-                        submit()
-                    })
-            HTTP_AUTH_REQUIRED -> failedEndpoint?.let { askForHttpAuthCredentials(it) }
-            NO_SITE_ERROR -> showError(R.string.no_site_error)
-            INVALID_URL -> {
-                showError(R.string.invalid_site_url_message)
-                mAnalyticsListener.trackInsertedInvalidUrl()
-            }
-            MISSING_XMLRPC_METHOD -> showError(R.string.xmlrpc_missing_method_error)
-            WORDPRESS_COM_SITE -> handleWpComDiscoveryError(failedEndpoint)
-            XMLRPC_BLOCKED -> showError(R.string.xmlrpc_post_blocked_error)
-            XMLRPC_FORBIDDEN -> showError(R.string.xmlrpc_endpoint_forbidden_error)
-            GENERIC_ERROR -> showError(R.string.error_generic)
-        }
-    }
-
-    private fun handleWpComDiscoveryError(failedEndpoint: String?) {
-        AppLog.e(API, "Inputted a wpcom address in site address screen.")
-
-        // If the user is already logged in a wordpress.com account, bail out
-        if (mAccountStore.hasAccessToken()) {
-            val currentUsername = mAccountStore.account.userName
-            AppLog.e(NUX, "User is already logged in WordPress.com: $currentUsername")
-            val oldSitesIDs = SiteUtils.getCurrentSiteIds(mSiteStore, true)
-            mLoginListener?.alreadyLoggedInWpcom(oldSitesIDs)
-        } else {
-            mLoginListener?.gotWpcomSiteInfo(failedEndpoint)
-        }
-    }
-
-    private fun handleDiscoverySuccess(endpointAddress: String?) {
-        AppLog.i(NUX, "Discovery succeeded, endpoint: $endpointAddress")
-
-        // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
-        val inputSiteAddress = mRequestedSiteAddress
-        endProgress()
-        mLoginListener?.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress)
     }
 
     private fun askForHttpAuthCredentials(url: String) {
@@ -244,172 +177,19 @@ class LoginSiteAddressFragment : LoginBaseFormFragment<LoginListener?>() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == LoginHttpAuthDialogFragment.DO_HTTP_AUTH && resultCode == Activity.RESULT_OK) {
+            val loginMode = mLoginListener?.loginMode
             data?.let {
                 val url = data.getStringExtra(LoginHttpAuthDialogFragment.ARG_URL)
                 val httpUsername = data.getStringExtra(LoginHttpAuthDialogFragment.ARG_USERNAME)
                 val httpPassword = data.getStringExtra(LoginHttpAuthDialogFragment.ARG_PASSWORD)
-                mHTTPAuthManager.addHTTPAuthCredentials(httpUsername, httpPassword, url, null)
-                submit()
-            }
-        }
-    }
-
-    // OnChanged events
-    @Subscribe(threadMode = MAIN) fun onFetchedConnectSiteInfo(event: OnConnectSiteInfoChecked) {
-        if (mRequestedSiteAddress == null) {
-            // bail if user canceled
-            return
-        }
-        if (!isAdded) {
-            return
-        }
-        if (event.isError) {
-            mAnalyticsListener.trackConnectedSiteInfoFailed(
-                    mRequestedSiteAddress,
-                    event.javaClass.simpleName,
-                    event.error.type.name,
-                    event.error.message
-            )
-            AppLog.e(API, "onFetchedConnectSiteInfo has error: " + event.error.message)
-            showError(R.string.invalid_site_url_message)
-            endProgressIfNeeded()
-        } else {
-            val hasJetpack = calculateHasJetpack(event.info)
-            mAnalyticsListener.trackConnectedSiteInfoSucceeded(createConnectSiteInfoProperties(event.info, hasJetpack))
-            if (mLoginListener?.loginMode == WOO_LOGIN_MODE) {
-                handleConnectSiteInfoForWoo(event.info, hasJetpack)
-            } else if (mLoginListener?.loginMode == JETPACK_LOGIN_ONLY) {
-                handleConnectSiteInfoForJetpack(event.info)
-            } else {
-                handleConnectSiteInfoForWordPress(event.info)
-            }
-        }
-    }
-
-    private fun handleConnectSiteInfoForWoo(siteInfo: ConnectSiteInfoPayload, hasJetpack: Boolean) {
-        endProgressIfNeeded()
-        if (!siteInfo.exists) {
-            // Site does not exist
-            showError(R.string.invalid_site_url_message)
-        } else if (!siteInfo.isWordPress) {
-            // Not a WordPress site
-            mLoginListener?.handleSiteAddressError(siteInfo)
-        } else {
-            mLoginListener?.gotConnectedSiteInfo(
-                    siteInfo.url,
-                    siteInfo.urlAfterRedirects,
-                    hasJetpack
-            )
-        }
-    }
-
-    private fun handleConnectSiteInfoForWordPress(siteInfo: ConnectSiteInfoPayload) {
-        if (siteInfo.isWPCom) {
-            // It's a Simple or Atomic site
-            if (mLoginListener?.loginMode == SELFHOSTED_ONLY) {
-                // We're only interested in self-hosted sites
-                if (siteInfo.hasJetpack) {
-                    // This is an Atomic site, so treat it as self-hosted and start the discovery process
-                    initiateDiscovery()
-                    return
+                if (loginMode != null && url != null && httpUsername != null && httpPassword != null) {
+                    viewModel.submitHttpCredentials(loginMode, httpUsername, httpPassword, url)
                 }
             }
-            endProgressIfNeeded()
-            mLoginListener?.gotWpcomSiteInfo(UrlUtils.removeScheme(siteInfo.url))
-        } else {
-            // It's a Jetpack or self-hosted site
-            if (mLoginListener?.loginMode == WPCOM_LOGIN_ONLY) {
-                // We're only interested in WordPress.com accounts
-                showError(R.string.enter_wpcom_or_jetpack_site)
-                endProgressIfNeeded()
-            } else {
-                // Start the discovery process
-                initiateDiscovery()
-            }
         }
-    }
-
-    private fun handleConnectSiteInfoForJetpack(siteInfo: ConnectSiteInfoPayload) {
-        endProgressIfNeeded()
-        if (siteInfo.hasJetpack && siteInfo.isJetpackConnected && siteInfo.isJetpackActive) {
-            mLoginListener?.gotWpcomSiteInfo(UrlUtils.removeScheme(siteInfo.url))
-        } else {
-            mLoginListener?.handleSiteAddressError(siteInfo)
-        }
-    }
-
-    private fun calculateHasJetpack(siteInfo: ConnectSiteInfoPayload): Boolean {
-        // Determining if jetpack is actually installed takes additional logic. This final
-        // calculated event property will make querying this event more straight-forward.
-        // Internal reference: p99K0U-1vO-p2#comment-3574
-        var hasJetpack = false
-        if (siteInfo.isWPCom && siteInfo.hasJetpack) {
-            // This is likely an atomic site.
-            hasJetpack = true
-        } else if (siteInfo.isJetpackConnected) {
-            hasJetpack = true
-        }
-        return hasJetpack
-    }
-
-    private fun createConnectSiteInfoProperties(
-        siteInfo: ConnectSiteInfoPayload,
-        hasJetpack: Boolean
-    ): Map<String, String?> {
-        val properties = HashMap<String, String?>()
-        properties[KEY_SITE_INFO_URL] = siteInfo.url
-        properties[KEY_SITE_INFO_URL_AFTER_REDIRECTS] = siteInfo.urlAfterRedirects
-        properties[KEY_SITE_INFO_EXISTS] = siteInfo.exists.toString()
-        properties[KEY_SITE_INFO_HAS_JETPACK] = siteInfo.hasJetpack.toString()
-        properties[KEY_SITE_INFO_IS_JETPACK_ACTIVE] = siteInfo.isJetpackActive.toString()
-        properties[KEY_SITE_INFO_IS_JETPACK_CONNECTED] = siteInfo.isJetpackConnected.toString()
-        properties[KEY_SITE_INFO_IS_WORDPRESS] = siteInfo.isWordPress.toString()
-        properties[KEY_SITE_INFO_IS_WPCOM] = siteInfo.isWPCom.toString()
-        properties[KEY_SITE_INFO_CALCULATED_HAS_JETPACK] = hasJetpack.toString()
-        return properties
-    }
-
-    private fun initiateDiscovery() {
-        if (!NetworkUtils.checkConnection(activity)) {
-            // There's no active network connection
-            return
-        }
-
-        // Start the discovery process
-        mDispatcher.dispatch(AuthenticationActionBuilder.newDiscoverEndpointAction(mRequestedSiteAddress))
-    }
-
-    @Subscribe(threadMode = MAIN)
-    fun onDiscoverySucceeded(event: OnDiscoveryResponse) {
-        // bail if user canceled
-        if (mRequestedSiteAddress == null) {
-            return
-        }
-        if (!isAdded) {
-            return
-        }
-        if (event.isError) {
-            endProgressIfNeeded()
-            mAnalyticsListener.trackLoginFailed(event.javaClass.simpleName, event.error.name, event.error.toString())
-            AppLog.e(API, "onDiscoveryResponse has error: " + event.error.name + " - " + event.error.toString())
-            handleDiscoveryError(event.error, event.failedEndpoint)
-            return
-        }
-        AppLog.i(NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint)
-        handleDiscoverySuccess(event.xmlRpcEndpoint)
     }
 
     companion object {
-        private const val KEY_REQUESTED_SITE_ADDRESS = "KEY_REQUESTED_SITE_ADDRESS"
-        private const val KEY_SITE_INFO_URL = "url"
-        private const val KEY_SITE_INFO_URL_AFTER_REDIRECTS = "url_after_redirects"
-        private const val KEY_SITE_INFO_EXISTS = "exists"
-        private const val KEY_SITE_INFO_HAS_JETPACK = "has_jetpack"
-        private const val KEY_SITE_INFO_IS_JETPACK_ACTIVE = "is_jetpack_active"
-        private const val KEY_SITE_INFO_IS_JETPACK_CONNECTED = "is_jetpack_connected"
-        private const val KEY_SITE_INFO_IS_WORDPRESS = "is_wordpress"
-        private const val KEY_SITE_INFO_IS_WPCOM = "is_wp_com"
-        private const val KEY_SITE_INFO_CALCULATED_HAS_JETPACK = "login_calculated_has_jetpack"
         const val TAG = "login_site_address_fragment_tag"
     }
 }
