@@ -42,6 +42,7 @@
     <string name="login_site_address_help_title">What\'s my site address?</string>
     <string name="login_site_address_help_content">Your site address appears in the bar at the top of the screen when you visit your site in Chrome.</string>
     <string name="login_site_address_more_help">Need more help?</string>
+    <string name="login_site_address_contains_email">It looks like that might be an email address. Do you want to %1$slogin with a WordPress.com account%2$s instead?</string>
     <string name="login_find_your_site_adress">Find your site address</string>
     <string name="login_find_your_connected_email">Find your connected email</string>
     <string name="login_checking_site_address">Checking site address</string>

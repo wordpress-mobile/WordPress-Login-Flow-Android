@@ -62,6 +62,7 @@ public interface LoginListener {
     void helpSiteAddress(String url);
     void helpFindingSiteAddress(String username, SiteStore siteStore);
     void handleSiteAddressError(ConnectSiteInfoPayload siteInfo);
+    void loginViaEmailInstead();
 
     // Login username password callbacks
     void saveCredentialsInSmartLock(@Nullable String username, @Nullable String password,

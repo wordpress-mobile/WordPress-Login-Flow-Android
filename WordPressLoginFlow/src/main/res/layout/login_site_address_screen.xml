@@ -31,4 +31,13 @@
         android:paddingEnd="@dimen/margin_none"
         android:paddingStart="@dimen/margin_none"
         android:text="@string/login_find_your_site_adress" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/warning_text_view"
+        style="@style/Widget.LoginFlow.TextView.Label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        tools:text="@string/login_site_address_contains_email"
+        tools:visibility="visible" />
 </LinearLayout>

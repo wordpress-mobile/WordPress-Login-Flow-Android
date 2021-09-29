@@ -18,6 +18,7 @@ class LoginSiteAddressValidator {
 
     private MutableLiveData<Boolean> mIsValid = new MutableLiveData<>();
     private MutableLiveData<Integer> mErrorMessageResId = new MutableLiveData<>();
+    private MutableLiveData<Boolean> mContainsEmail = new MutableLiveData<>();
 
     private String mCleanedSiteAddress = "";
     private final Debouncer mDebouncer;
@@ -28,6 +29,10 @@ class LoginSiteAddressValidator {
 
     @NonNull LiveData<Integer> getErrorMessageResId() {
         return mErrorMessageResId;
+    }
+
+    @NonNull LiveData<Boolean> getContainsEmail() {
+        return mContainsEmail;
     }
 
     @NonNull String getCleanedSiteAddress() {
@@ -50,6 +55,7 @@ class LoginSiteAddressValidator {
     void setAddress(@NonNull String siteAddress) {
         mCleanedSiteAddress = cleanSiteAddress(siteAddress);
         final boolean isValid = siteAddressIsValid(mCleanedSiteAddress);
+        final boolean containsEmail = siteAddressContainsEmail(mCleanedSiteAddress);
 
         mIsValid.setValue(isValid);
         mErrorMessageResId.setValue(null);
@@ -62,6 +68,8 @@ class LoginSiteAddressValidator {
                 }
             }
         }, SECONDS_DELAY_BEFORE_SHOWING_ERROR_MESSAGE, TimeUnit.SECONDS);
+
+        mContainsEmail.postValue(isValid && containsEmail);
     }
 
     private static String cleanSiteAddress(@NonNull String siteAddress) {
@@ -70,5 +78,9 @@ class LoginSiteAddressValidator {
 
     private static boolean siteAddressIsValid(@NonNull String cleanedSiteAddress) {
         return Patterns.WEB_URL.matcher(cleanedSiteAddress).matches();
+    }
+
+    private static boolean siteAddressContainsEmail(@NonNull String cleanedSiteAddress) {
+        return Patterns.EMAIL_ADDRESS.matcher(cleanedSiteAddress).find();
     }
 }

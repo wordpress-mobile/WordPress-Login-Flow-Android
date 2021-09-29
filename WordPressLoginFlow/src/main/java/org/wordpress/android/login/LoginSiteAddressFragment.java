@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -30,12 +32,14 @@ import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.Di
 import org.wordpress.android.fluxc.store.AccountStore;
 import org.wordpress.android.fluxc.store.SiteStore.ConnectSiteInfoPayload;
 import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked;
+import org.wordpress.android.login.util.ContextExtensionsKt;
 import org.wordpress.android.login.util.SiteUtils;
 import org.wordpress.android.login.widgets.WPLoginInputRow;
 import org.wordpress.android.login.widgets.WPLoginInputRow.OnEditorCommitListener;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.EditTextUtils;
+import org.wordpress.android.util.HtmlUtils;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.UrlUtils;
 
@@ -64,6 +68,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
     public static final String TAG = "login_site_address_fragment_tag";
 
     private WPLoginInputRow mSiteAddressInput;
+    private TextView mWarningTextView;
 
     private String mRequestedSiteAddress;
 
@@ -107,6 +112,8 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         }
         mSiteAddressInput.addTextChangedListener(this);
         mSiteAddressInput.setOnEditorCommitListener(this);
+
+        mWarningTextView = rootView.findViewById(R.id.warning_text_view);
 
         rootView.findViewById(R.id.login_site_address_help_button).setOnClickListener(new OnClickListener() {
             @Override
@@ -180,6 +187,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
                 }
             }
         });
+        mLoginSiteAddressValidator.getContainsEmail().observe(getViewLifecycleOwner(), this::handleContainsEmail);
     }
 
     @Override public void onResume() {
@@ -202,6 +210,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
     @Override public void onDestroyView() {
         mLoginSiteAddressValidator.dispose();
         mSiteAddressInput = null;
+        mWarningTextView = null;
 
         super.onDestroyView();
     }
@@ -257,6 +266,25 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         String message = getString(messageId);
         mAnalyticsListener.trackFailure(message);
         mSiteAddressInput.setError(message);
+    }
+
+    private void handleContainsEmail(boolean containsEmail) {
+        // TODO Check login mode
+        if (!containsEmail) {
+            mWarningTextView.setVisibility(View.GONE);
+        } else {
+            mWarningTextView.setVisibility(View.VISIBLE);
+            mWarningTextView.setText(formatWarningText(R.string.login_site_address_contains_email));
+            mWarningTextView.setOnClickListener(v -> mLoginListener.loginViaEmailInstead());
+        }
+        // TODO Add tracking?
+    }
+
+    // TODO This logic is also used by LoginEmailFragment, so it can be extracted instead of duplicated
+    private Spanned formatWarningText(int stringResId) {
+        final int primaryColorResId = ContextExtensionsKt.getColorResIdFromAttribute(getContext(), R.attr.colorPrimary);
+        final String primaryColorHtml = HtmlUtils.colorResToHtmlColor(getContext(), primaryColorResId);
+        return Html.fromHtml(getString(stringResId, "<u><font color='" + primaryColorHtml + "'>", "</font></u>"));
     }
 
     @Override
@@ -342,7 +370,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
                     mConnectSiteInfoUrl,
                     mConnectSiteInfoUrlRedirect,
                     mConnectSiteInfoCalculatedHasJetpack
-                                               );
+            );
         } else {
             mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
         }
