@@ -401,13 +401,14 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
 
             endProgressIfNeeded();
         } else {
-            boolean hasJetpack = calculateHasJetpack(event.info);
+            boolean calculatedHasJetpack = calculateHasJetpack(event.info);
 
             mConnectSiteInfoUrl = event.info.url;
             mConnectSiteInfoUrlRedirect = event.info.urlAfterRedirects;
-            mConnectSiteInfoCalculatedHasJetpack = hasJetpack;
+            mConnectSiteInfoCalculatedHasJetpack = calculatedHasJetpack;
 
-            mAnalyticsListener.trackConnectedSiteInfoSucceeded(createConnectSiteInfoProperties(event.info, hasJetpack));
+            mAnalyticsListener.trackConnectedSiteInfoSucceeded(
+                    createConnectSiteInfoProperties(event.info, calculatedHasJetpack));
 
             if (mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
                 handleConnectSiteInfoForWoo(event.info);
