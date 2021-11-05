@@ -401,14 +401,12 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
 
             endProgressIfNeeded();
         } else {
-            boolean calculatedHasJetpack = calculateHasJetpack(event.info);
-
             mConnectSiteInfoUrl = event.info.url;
             mConnectSiteInfoUrlRedirect = event.info.urlAfterRedirects;
-            mConnectSiteInfoCalculatedHasJetpack = calculatedHasJetpack;
+            mConnectSiteInfoCalculatedHasJetpack = calculateHasJetpack(event.info);
 
             mAnalyticsListener.trackConnectedSiteInfoSucceeded(
-                    createConnectSiteInfoProperties(event.info, calculatedHasJetpack));
+                    createConnectSiteInfoProperties(event.info));
 
             if (mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
                 handleConnectSiteInfoForWoo(event.info);
@@ -499,7 +497,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         return hasJetpack;
     }
 
-    private Map<String, String> createConnectSiteInfoProperties(ConnectSiteInfoPayload siteInfo, boolean hasJetpack) {
+    private Map<String, String> createConnectSiteInfoProperties(ConnectSiteInfoPayload siteInfo) {
         HashMap<String, String> properties = new HashMap<>();
         properties.put(KEY_SITE_INFO_URL, siteInfo.url);
         properties.put(KEY_SITE_INFO_URL_AFTER_REDIRECTS, siteInfo.urlAfterRedirects);
@@ -509,7 +507,8 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         properties.put(KEY_SITE_INFO_IS_JETPACK_CONNECTED, Boolean.toString(siteInfo.isJetpackConnected));
         properties.put(KEY_SITE_INFO_IS_WORDPRESS, Boolean.toString(siteInfo.isWordPress));
         properties.put(KEY_SITE_INFO_IS_WPCOM, Boolean.toString(siteInfo.isWPCom));
-        properties.put(KEY_SITE_INFO_CALCULATED_HAS_JETPACK, Boolean.toString(hasJetpack));
+        properties.put(KEY_SITE_INFO_CALCULATED_HAS_JETPACK,
+                Boolean.toString(mConnectSiteInfoCalculatedHasJetpack));
         return properties;
     }
 }
