@@ -1,1 +1,33 @@
+pluginManagement {
+    gradle.ext.kotlinVersion = '1.4.32'
+    gradle.ext.agpVersion = '4.2.2'
+
+    plugins {
+        id "org.jetbrains.kotlin.android" version gradle.ext.kotlinVersion
+        id "org.jetbrains.kotlin.kapt" version gradle.ext.kotlinVersion
+        id "org.jetbrains.kotlin.plugin.parcelize" version gradle.ext.kotlinVersion
+        id "com.android.library" version gradle.ext.agpVersion
+        id "com.automattic.android.publish-to-s3" version "0.7.0"
+    }
+    repositories {
+        maven {
+            url 'https://a8c-libs.s3.amazonaws.com/android' 
+            content {
+                includeGroup "com.automattic.android"
+                includeGroup "com.automattic.android.publish-to-s3"
+            }
+        }
+        gradlePluginPortal()
+        google()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            // TODO: Remove this as soon as fetchstyle starts supporting Plugin Marker Artifacts
+            if (requested.id.id == "com.automattic.android.fetchstyle") {
+                useModule("com.automattic.android:fetchstyle:1.1")
+            }
+        }
+    }
+}
+
 include ':WordPressLoginFlow'
