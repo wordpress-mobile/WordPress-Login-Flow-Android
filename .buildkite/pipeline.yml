@@ -30,7 +30,7 @@ steps:
   # Publish tasks
   - label: "Publish to s3"
     depends_on:
-      - "lint"
+      - "lint_and_checkstyle"
       - "test"
     plugins:
       - *publish-android-artifacts-docker-container
