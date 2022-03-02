@@ -7,4 +7,4 @@ wp.debug.wpcom_login_password =
 wp.debug.wpcom_website_url =
 
 android.useAndroidX=true
-android.enableJetifier=true
+android.enableJetifier=false
