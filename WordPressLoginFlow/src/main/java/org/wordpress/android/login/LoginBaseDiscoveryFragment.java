@@ -10,7 +10,7 @@ import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.NetworkUtils;
 
 public abstract class LoginBaseDiscoveryFragment extends LoginBaseFormFragment<LoginListener> {
-    LoginBaseDiscoveryListener mLoginBaseDiscoveryListener;
+    public LoginBaseDiscoveryListener mLoginBaseDiscoveryListener;
 
     public interface LoginBaseDiscoveryListener {
         String getRequestedSiteAddress();
@@ -25,7 +25,7 @@ public abstract class LoginBaseDiscoveryFragment extends LoginBaseFormFragment<L
         mLoginBaseDiscoveryListener = null;
     }
 
-    void initiateDiscovery() {
+    public void initiateDiscovery() {
         if (mLoginBaseDiscoveryListener == null || !NetworkUtils.checkConnection(getActivity())) {
             // Fragment was detached or there's no active network connection
             return;
