@@ -8,16 +8,15 @@ ext {
     wordpressUtilsVersion = '1.26'
     wordpressFluxCVersion = '2.0.0'
 
-    androidxCoreVersion = '1.3.2'
-    daggerVersion = '2.42'
-    androidxAppCompatVersion = '1.0.2'
-
     // main
+    androidxAppCompatVersion = '1.0.2'
+    androidxCoreVersion = '1.3.2'
     androidxConstraintLayoutVersion = '2.0.4'
     androidxGlidLayoutVersion = '1.0.0'
     androidxLegacySupportV13Version = '1.0.0'
     androidxMediaVersion = '1.2.1'
     androidxVectorDrawableAnimatedVersion = '1.1.0'
+    daggerVersion = '2.42'
     glideVersion = '4.12.0'
     javaxAnnotationVersion = '10.0-b28'
     materialVersion = '1.2.1'
