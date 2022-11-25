@@ -1,7 +1,3 @@
-plugins {
-    id "com.automattic.android.fetchstyle"
-}
-
 ext {
     minSdkVersion = 24
     compileSdkVersion = 31
