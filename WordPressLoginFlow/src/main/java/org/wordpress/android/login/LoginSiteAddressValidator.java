@@ -6,6 +6,8 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import org.wordpress.android.fluxc.network.discovery.DiscoveryUtils;
+import org.wordpress.android.util.UrlUtils;
 import org.wordpress.android.util.helpers.Debouncer;
 
 import java.util.concurrent.TimeUnit;
@@ -22,15 +24,18 @@ class LoginSiteAddressValidator {
     private String mCleanedSiteAddress = "";
     private final Debouncer mDebouncer;
 
-    @NonNull LiveData<Boolean> getIsValid() {
+    @NonNull
+    LiveData<Boolean> getIsValid() {
         return mIsValid;
     }
 
-    @NonNull LiveData<Integer> getErrorMessageResId() {
+    @NonNull
+    LiveData<Integer> getErrorMessageResId() {
         return mErrorMessageResId;
     }
 
-    @NonNull String getCleanedSiteAddress() {
+    @NonNull
+    String getCleanedSiteAddress() {
         return mCleanedSiteAddress;
     }
 
@@ -56,7 +61,8 @@ class LoginSiteAddressValidator {
 
         // Call debounce regardless if there was an error so that the previous Runnable will be cancelled.
         mDebouncer.debounce(Void.class, new Runnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 if (!isValid && !mCleanedSiteAddress.isEmpty()) {
                     mErrorMessageResId.postValue(R.string.login_invalid_site_url);
                 }
@@ -65,7 +71,12 @@ class LoginSiteAddressValidator {
     }
 
     private static String cleanSiteAddress(@NonNull String siteAddress) {
-        return siteAddress.trim().replaceAll("[\r\n]", "");
+        siteAddress = siteAddress
+                .trim()
+                .replaceAll("[\r\n]", "");
+        // Convert IDN names to punycode if necessary
+        siteAddress = UrlUtils.convertUrlToPunycodeIfNeeded(siteAddress);
+        return DiscoveryUtils.stripKnownPaths(siteAddress);
     }
 
     private static boolean siteAddressIsValid(@NonNull String cleanedSiteAddress) {
