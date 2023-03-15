@@ -1,6 +1,6 @@
 ext {
     minSdkVersion = 24
-    compileSdkVersion = 31
+    compileSdkVersion = 33
     targetSdkVersion = 31
 }
 
@@ -37,7 +37,7 @@ allprojects {
 
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     if (tasks.findByPath('checkstyle') == null) {
