@@ -7,7 +7,7 @@ ext {
 ext {
     // libs
     wordpressLintVersion = '1.1.0'
-    wordpressUtilsVersion = '1.26'
+    wordpressUtilsVersion = '3.4.0'
     wordpressFluxCVersion = '2.0.0'
 
     // main
