@@ -10,3 +10,5 @@ wp.debug.wpcom_website_url =
 
 android.useAndroidX=true
 android.enableJetifier=false
+
+android.nonTransitiveRClass=true
