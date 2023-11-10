@@ -15,7 +15,7 @@ ext {
     // libs
     wordpressLintVersion = '2.0.0'
     wordpressUtilsVersion = '3.5.0'
-    wordpressFluxCVersion = '2874-52fc9b903d69281c8e3bbbede2b028700c10d509'
+    wordpressFluxCVersion = '2874-b803f3f8b58aa99937e6ab9b621a7ff2226155a5'
 
     // main
     androidxAppCompatVersion = '1.0.2'
