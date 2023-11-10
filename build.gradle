@@ -15,7 +15,7 @@ ext {
     // libs
     wordpressLintVersion = '2.0.0'
     wordpressUtilsVersion = '3.5.0'
-    wordpressFluxCVersion = '2.21.0'
+    wordpressFluxCVersion = 'trunk-da7285ca3e37af05b86442347a55bfb561838988'
 
     // main
     androidxAppCompatVersion = '1.0.2'
@@ -30,6 +30,7 @@ ext {
     javaxAnnotationVersion = '10.0-b28'
     materialVersion = '1.2.1'
     playServicesAuthVersion = '18.1.0'
+    fidoVersion = '20.1.0'
 
     // test
     androidxArchCoreVersion = '2.1.0'
