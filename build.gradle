@@ -31,6 +31,7 @@ ext {
     materialVersion = '1.2.1'
     playServicesAuthVersion = '18.1.0'
     fidoVersion = '20.1.0'
+    credentialManagerVersion = '1.2.0'
 
     // test
     androidxArchCoreVersion = '2.1.0'
