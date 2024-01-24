@@ -18,19 +18,20 @@ ext {
     wordpressFluxCVersion = '2.57.0'
 
     // main
-    androidxAppCompatVersion = '1.0.2'
-    androidxCoreVersion = '1.3.2'
+    androidxAppCompatVersion = '1.6.1'
+    androidxCoreVersion = '1.12.0'
     androidxConstraintLayoutVersion = '2.0.4'
     androidxGlidLayoutVersion = '1.0.0'
     androidxLegacySupportV13Version = '1.0.0'
     androidxMediaVersion = '1.2.1'
     androidxVectorDrawableAnimatedVersion = '1.1.0'
-    daggerVersion = '2.42'
+    daggerVersion = '2.47'
     glideVersion = '4.12.0'
     javaxAnnotationVersion = '10.0-b28'
     materialVersion = '1.2.1'
     playServicesAuthVersion = '18.1.0'
     fidoVersion = '20.1.0'
+    credentialManagerVersion = '1.2.0'
 
     // test
     androidxArchCoreVersion = '2.1.0'
