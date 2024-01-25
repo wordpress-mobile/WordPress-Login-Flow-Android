@@ -6,12 +6,6 @@ plugins {
 }
 
 ext {
-    minSdkVersion = 24
-    compileSdkVersion = 34
-    targetSdkVersion = 33
-}
-
-ext {
     // libs
     wordpressLintVersion = '2.0.0'
     wordpressUtilsVersion = '3.5.0'
@@ -26,7 +20,7 @@ ext {
     androidxLegacySupportV13Version = '1.0.0'
     androidxMediaVersion = '1.2.1'
     androidxVectorDrawableAnimatedVersion = '1.1.0'
-    daggerVersion = '2.42'
+    daggerVersion = '2.46.1'
     glideVersion = '4.12.0'
     javaxAnnotationVersion = '10.0-b28'
     materialVersion = '1.2.1'

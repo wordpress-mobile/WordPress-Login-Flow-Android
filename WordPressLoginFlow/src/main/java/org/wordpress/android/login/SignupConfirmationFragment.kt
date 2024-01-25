@@ -76,6 +76,7 @@ class SignupConfirmationFragment : Fragment() {
             mPhotoUrl = it.getString(ARG_SOCIAL_PHOTO_URL)
             mService = it.getString(ARG_SOCIAL_SERVICE)
         }
+        @Suppress("DEPRECATION")
         setHasOptionsMenu(true)
     }
 
