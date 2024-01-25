@@ -12,6 +12,7 @@ repositories {
             includeGroup "org.wordpress"
             includeGroup "org.wordpress.fluxc"
             includeGroup "org.wordpress.wellsql"
+            includeGroup "com.gravatar"
         }
     }
     mavenCentral()
