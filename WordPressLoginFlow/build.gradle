@@ -28,6 +28,11 @@ kotlin {
 android {
     namespace "org.wordpress.android.login"
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
     compileSdk 34
 
     defaultConfig {
