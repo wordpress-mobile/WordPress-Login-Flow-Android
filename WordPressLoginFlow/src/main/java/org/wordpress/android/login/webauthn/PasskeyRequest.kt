@@ -24,6 +24,7 @@ class PasskeyRequest internal constructor(
     credentialManager: CredentialManager,
     executor: ExecutorService,
     signal: CancellationSignal,
+    coroutineScope: CoroutineScope,
     requestData: PasskeyRequestData,
     onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
     onFailure: (Throwable) -> Unit
@@ -37,7 +38,7 @@ class PasskeyRequest internal constructor(
 
         val passkeyRequestCallback = object : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
             override fun onError(e: GetCredentialException) {
-                CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
+                coroutineScope.launch { onFailure(e) }
                 Log.e(TAG, e.stackTraceToString())
             }
 
@@ -97,6 +98,7 @@ class PasskeyRequest internal constructor(
                     credentialManager = CredentialManager.create(context),
                     executor = Executors.newSingleThreadExecutor(),
                     signal = CancellationSignal(),
+                    coroutineScope = CoroutineScope(Dispatchers.Main),
                     requestData = requestData,
                     onSuccess = onSuccess,
                     onFailure = onFailure
