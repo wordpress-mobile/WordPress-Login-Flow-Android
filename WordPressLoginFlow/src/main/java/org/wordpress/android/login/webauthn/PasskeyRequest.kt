@@ -16,10 +16,14 @@ import kotlinx.coroutines.launch
 import org.wordpress.android.fluxc.annotations.action.Action
 import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder
 import org.wordpress.android.fluxc.store.AccountStore.FinishWebauthnChallengePayload
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class PasskeyRequest private constructor(
+class PasskeyRequest internal constructor(
     context: Context,
+    credentialManager: CredentialManager,
+    executor: ExecutorService,
+    signal: CancellationSignal,
     requestData: PasskeyRequestData,
     onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
     onFailure: (Throwable) -> Unit
@@ -88,7 +92,15 @@ class PasskeyRequest private constructor(
             onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
             onFailure: (Throwable) -> Unit
         ) {
-            PasskeyRequest(context, requestData, onSuccess, onFailure)
+            PasskeyRequest(
+                    context = context,
+                    credentialManager = CredentialManager.create(context),
+                    executor = Executors.newSingleThreadExecutor(),
+                    signal = CancellationSignal(),
+                    requestData = requestData,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure
+            )
         }
     }
 }
