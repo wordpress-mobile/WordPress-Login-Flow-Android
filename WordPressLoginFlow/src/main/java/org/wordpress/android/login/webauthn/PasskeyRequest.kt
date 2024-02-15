@@ -21,17 +21,15 @@ import java.util.concurrent.Executors
 
 class PasskeyRequest internal constructor(
     context: Context,
+    requestData: PasskeyRequestData,
+    onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
+    onFailure: (Throwable) -> Unit,
     credentialManager: CredentialManager,
     executor: ExecutorService,
     signal: CancellationSignal,
-    coroutineScope: CoroutineScope,
-    requestData: PasskeyRequestData,
-    onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
-    onFailure: (Throwable) -> Unit
+    coroutineScope: CoroutineScope
 ) {
     init {
-        val executor = Executors.newSingleThreadExecutor()
-        val signal = CancellationSignal()
         val getCredRequest = GetCredentialRequest(
                 listOf(GetPublicKeyCredentialOption(requestData.requestJson))
         )
@@ -54,7 +52,7 @@ class PasskeyRequest internal constructor(
         }
 
         try {
-            CredentialManager.create(context).getCredentialAsync(
+            credentialManager.getCredentialAsync(
                     request = getCredRequest,
                     context = context,
                     cancellationSignal = signal,
@@ -95,13 +93,13 @@ class PasskeyRequest internal constructor(
         ) {
             PasskeyRequest(
                     context = context,
+                    requestData = requestData,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
                     credentialManager = CredentialManager.create(context),
                     executor = Executors.newSingleThreadExecutor(),
                     signal = CancellationSignal(),
-                    coroutineScope = CoroutineScope(Dispatchers.Main),
-                    requestData = requestData,
-                    onSuccess = onSuccess,
-                    onFailure = onFailure
+                    coroutineScope = CoroutineScope(Dispatchers.Main)
             )
         }
     }
