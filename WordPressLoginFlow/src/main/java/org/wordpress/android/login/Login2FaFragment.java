@@ -2,6 +2,7 @@ package org.wordpress.android.login;
 
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -14,6 +15,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,6 +25,8 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 
+import com.google.android.gms.fido.Fido;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredential;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.greenrobot.eventbus.Subscribe;
@@ -30,6 +35,7 @@ import org.wordpress.android.fluxc.generated.AccountActionBuilder;
 import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder;
 import org.wordpress.android.fluxc.store.AccountStore.AuthenticateTwoFactorPayload;
 import org.wordpress.android.fluxc.store.AccountStore.AuthenticationErrorType;
+import org.wordpress.android.fluxc.store.AccountStore.FinishWebauthnChallengePayload;
 import org.wordpress.android.fluxc.store.AccountStore.OnAuthenticationChanged;
 import org.wordpress.android.fluxc.store.AccountStore.OnSocialChanged;
 import org.wordpress.android.fluxc.store.AccountStore.PushSocialAuthPayload;
@@ -39,6 +45,7 @@ import org.wordpress.android.fluxc.store.AccountStore.StartWebauthnChallengePayl
 import org.wordpress.android.fluxc.store.AccountStore.WebauthnChallengeReceived;
 import org.wordpress.android.fluxc.store.AccountStore.WebauthnPasskeyAuthenticated;
 import org.wordpress.android.login.util.SiteUtils;
+import org.wordpress.android.login.webauthn.Fido2ClientHandler;
 import org.wordpress.android.login.webauthn.PasskeyRequest;
 import org.wordpress.android.login.webauthn.PasskeyRequest.PasskeyRequestData;
 import org.wordpress.android.login.widgets.WPLoginInputRow;
@@ -118,6 +125,8 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
     private boolean mIsSocialLoginConnect;
     private boolean mSentSmsCode;
     private List<SupportedAuthTypes> mSupportedAuthTypes;
+    @Nullable private Fido2ClientHandler mFido2ClientHandler = null;
+    @Nullable private ActivityResultLauncher<IntentSenderRequest> mResultLauncher = null;
 
     public static Login2FaFragment newInstance(String emailAddress, String password) {
         Login2FaFragment fragment = new Login2FaFragment();
@@ -658,6 +667,24 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
             }
         }
         return supportedAuthTypes;
+    }
+
+    private void onCredentialsResultAvailable(@NonNull Intent resultData) {
+        if (resultData.hasExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA)) {
+            byte[] credentialBytes = resultData.getByteArrayExtra(Fido.FIDO2_KEY_CREDENTIAL_EXTRA);
+            if (credentialBytes == null || mFido2ClientHandler == null) {
+                String errorMessage = getString(R.string.login_error_security_key);
+                handleWebauthnError(AuthenticationErrorType.WEBAUTHN_FAILED, errorMessage);
+                return;
+            }
+
+            PublicKeyCredential credentials =
+                    PublicKeyCredential.deserializeFromBytes(credentialBytes);
+            FinishWebauthnChallengePayload payload =
+                    mFido2ClientHandler.onCredentialsAvailable(credentials);
+            mDispatcher.dispatch(
+                    AuthenticationActionBuilder.newFinishSecurityKeyChallengeAction(payload));
+        }
     }
 
     public enum SupportedAuthTypes {
