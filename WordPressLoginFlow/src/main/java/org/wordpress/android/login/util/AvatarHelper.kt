@@ -9,7 +9,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
-import com.gravatar.DefaultAvatarImage
+import com.gravatar.DefaultAvatarImage.Status404
 import com.gravatar.emailAddressToGravatarUrl
 import org.wordpress.android.login.R
 
@@ -21,7 +21,7 @@ object AvatarHelper {
         listener: AvatarRequestListener
     ) {
         val avatarSize = fragment.resources.getDimensionPixelSize(R.dimen.avatar_sz_login)
-        val avatarUrl = email?.let { emailAddressToGravatarUrl(email, avatarSize, DefaultAvatarImage.Status404) }
+        val avatarUrl = email?.let { emailAddressToGravatarUrl(email, avatarSize, Status404) }
         loadAvatarFromUrl(fragment, avatarUrl, avatarView, listener)
     }
 
