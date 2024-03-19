@@ -44,8 +44,10 @@ class PasskeyRequest private constructor(
                 }
         )
 
+        val credentialManager = CredentialManager.create(context)
+
         try {
-            CredentialManager.create(context).getCredentialAsync(
+            credentialManager.getCredentialAsync(
                     request = getCredRequest,
                     context = context,
                     cancellationSignal = signal,
@@ -73,6 +75,17 @@ class PasskeyRequest private constructor(
         val twoStepNonce: String,
         val requestJson: String
     )
+
+    data class PasskeyError(
+        val reason: ErrorType,
+        val message: String
+    )
+
+    enum class ErrorType {
+        USER_CANCELED,
+        KEY_NOT_FOUND,
+        TIMEOUT
+    }
 
     class WPCredentialManagerCallback(
         private val onSuccess: (GetCredentialResponse) -> Unit,
