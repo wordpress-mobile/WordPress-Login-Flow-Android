@@ -78,6 +78,14 @@ class PasskeyRequest private constructor(
         val requestJson: String
     )
 
+    class WPCredentialManagerCallback(
+        private val onSuccess: (GetCredentialResponse) -> Unit,
+        private val onFailure: (GetCredentialException) -> Unit
+    ) : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
+        override fun onError(e: GetCredentialException) = onFailure(e)
+        override fun onResult(result: GetCredentialResponse) = onSuccess(result)
+    }
+
     companion object {
         private const val TAG = "PasskeyRequest"
 
