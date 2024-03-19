@@ -31,22 +31,18 @@ class PasskeyRequest private constructor(
                 listOf(GetPublicKeyCredentialOption(requestData.requestJson))
         )
 
-        val passkeyRequestCallback = object : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
-            override fun onError(e: GetCredentialException) {
-                CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
-                Log.e(TAG, e.stackTraceToString())
-            }
-
-            override fun onResult(result: GetCredentialResponse) {
-                FinishWebauthnChallengePayload().apply {
-                    mUserId = requestData.userId
-                    mTwoStepNonce = requestData.twoStepNonce
-                    mClientData = result.toJson().orEmpty()
-                }.let {
-                    AuthenticationActionBuilder.newFinishSecurityKeyChallengeAction(it)
-                }.let(onSuccess)
-            }
-        }
+        val passkeyRequestCallback = WPCredentialManagerCallback(
+                onFailure = onFailure,
+                onSuccess = { result ->
+                    FinishWebauthnChallengePayload().apply {
+                        mUserId = requestData.userId
+                        mTwoStepNonce = requestData.twoStepNonce
+                        mClientData = result.toJson().orEmpty()
+                    }.let {
+                        AuthenticationActionBuilder.newFinishSecurityKeyChallengeAction(it)
+                    }.let(onSuccess)
+                }
+        )
 
         try {
             CredentialManager.create(context).getCredentialAsync(
@@ -82,7 +78,10 @@ class PasskeyRequest private constructor(
         private val onSuccess: (GetCredentialResponse) -> Unit,
         private val onFailure: (GetCredentialException) -> Unit
     ) : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
-        override fun onError(e: GetCredentialException) = onFailure(e)
+        override fun onError(e: GetCredentialException) {
+            CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
+            Log.e(TAG, e.stackTraceToString())
+        }
         override fun onResult(result: GetCredentialResponse) = onSuccess(result)
     }
 
