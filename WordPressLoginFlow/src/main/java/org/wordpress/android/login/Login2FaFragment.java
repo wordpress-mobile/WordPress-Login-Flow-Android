@@ -622,8 +622,10 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
                     return null;
                 },
                 error -> {
-                    String errorMessage = getString(R.string.login_error_security_key);
-                    handleWebauthnError(AuthenticationErrorType.WEBAUTHN_FAILED, errorMessage);
+                    if (isVisible() && isResumed()) {
+                        String errorMessage = getString(R.string.login_error_security_key);
+                        handleWebauthnError(AuthenticationErrorType.WEBAUTHN_FAILED, errorMessage);
+                    }
                     return null;
                 }
         );
