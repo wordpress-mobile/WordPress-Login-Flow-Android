@@ -9,6 +9,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,7 @@ class PasskeyRequest private constructor(
     context: Context,
     requestData: PasskeyRequestData,
     onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
-    onFailure: (Throwable) -> Unit
+    onFailure: (PasskeyError) -> Unit
 ) {
     init {
         val executor = Executors.newSingleThreadExecutor()
@@ -70,6 +71,30 @@ class PasskeyRequest private constructor(
         }
     }
 
+    private fun handlePasskeyError(error: GetCredentialException): PasskeyError {
+        return when (error) {
+            is GetCredentialCancellationException -> PasskeyError(
+                reason = ErrorType.USER_CANCELED,
+                message = "User canceled the request"
+            )
+            else -> PasskeyError(
+                reason = ErrorType.KEY_NOT_FOUND,
+                message = "Key not found"
+            )
+        }
+    }
+
+    class WPCredentialManagerCallback(
+        private val onSuccess: (GetCredentialResponse) -> Unit,
+        private val onFailure: (PasskeyError) -> Unit
+    ) : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
+        override fun onError(e: GetCredentialException) {
+            CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
+            Log.e(TAG, e.stackTraceToString())
+        }
+        override fun onResult(result: GetCredentialResponse) = onSuccess(result)
+    }
+
     data class PasskeyRequestData(
         val userId: String,
         val twoStepNonce: String,
@@ -85,17 +110,6 @@ class PasskeyRequest private constructor(
         USER_CANCELED,
         KEY_NOT_FOUND,
         TIMEOUT
-    }
-
-    class WPCredentialManagerCallback(
-        private val onSuccess: (GetCredentialResponse) -> Unit,
-        private val onFailure: (GetCredentialException) -> Unit
-    ) : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
-        override fun onError(e: GetCredentialException) {
-            CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
-            Log.e(TAG, e.stackTraceToString())
-        }
-        override fun onResult(result: GetCredentialResponse) = onSuccess(result)
     }
 
     companion object {
