@@ -3,6 +3,7 @@ package org.wordpress.android.login.webauthn
 import android.content.Context
 import android.os.CancellationSignal
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.credentials.CredentialManager
 import androidx.credentials.CredentialManagerCallback
 import androidx.credentials.GetCredentialRequest
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 import org.wordpress.android.fluxc.annotations.action.Action
 import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder
 import org.wordpress.android.fluxc.store.AccountStore.FinishWebauthnChallengePayload
+import org.wordpress.android.login.R
 import java.util.concurrent.Executors
 
 class PasskeyRequest private constructor(
@@ -79,11 +81,11 @@ class PasskeyRequest private constructor(
         return when (error) {
             is GetCredentialCancellationException -> PasskeyError(
                 reason = ErrorType.USER_CANCELED,
-                message = "User canceled the request"
+                messageId = R.string.login_error_security_key
             )
             else -> PasskeyError(
                 reason = ErrorType.KEY_NOT_FOUND,
-                message = "Key not found"
+                messageId = R.string.login_error_generic
             )
         }
     }
@@ -104,7 +106,7 @@ class PasskeyRequest private constructor(
 
     data class PasskeyError(
         val reason: ErrorType,
-        val message: String
+        @StringRes val messageId: Int
     )
 
     enum class ErrorType {
