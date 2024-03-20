@@ -40,6 +40,7 @@ import org.wordpress.android.fluxc.store.AccountStore.WebauthnChallengeReceived;
 import org.wordpress.android.fluxc.store.AccountStore.WebauthnPasskeyAuthenticated;
 import org.wordpress.android.login.util.SiteUtils;
 import org.wordpress.android.login.webauthn.PasskeyRequest;
+import org.wordpress.android.login.webauthn.PasskeyRequest.PasskeyError;
 import org.wordpress.android.login.webauthn.PasskeyRequest.PasskeyRequestData;
 import org.wordpress.android.login.widgets.WPLoginInputRow;
 import org.wordpress.android.login.widgets.WPLoginInputRow.OnEditorCommitListener;
@@ -463,6 +464,19 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
         }
     }
 
+    private void handlePasskeyError(PasskeyError error) {
+        String message = getString(error.getMessageId());
+        switch (error.getReason()) {
+            case USER_CANCELED, KEY_NOT_FOUND, TIMEOUT:
+                mAnalyticsListener.trackLoginSecurityKeyFailure();
+                showErrorDialog(message);
+                break;
+            default:
+                showErrorDialog(getString(R.string.error_generic));
+                break;
+        }
+    }
+
     private void showErrorDialog(String message) {
         mAnalyticsListener.trackFailure(message);
         AlertDialog dialog = new MaterialAlertDialogBuilder(getActivity())
@@ -622,8 +636,7 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
                     return null;
                 },
                 error -> {
-                    String errorMessage = getString(R.string.login_error_security_key);
-                    handleWebauthnError(AuthenticationErrorType.WEBAUTHN_FAILED, errorMessage);
+                    handleWebauthnError(error);
                     return null;
                 }
         );
@@ -640,9 +653,9 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
         doFinishLogin();
     }
 
-    private void handleWebauthnError(AuthenticationErrorType errorType, String errorMessage) {
+    private void handleWebauthnError(PasskeyError error) {
         endProgress();
-        handleAuthError(errorType, errorMessage);
+        handlePasskeyError(error);
         getParentFragmentManager().popBackStack();
     }
 
