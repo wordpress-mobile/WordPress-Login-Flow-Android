@@ -33,7 +33,11 @@ class PasskeyRequest private constructor(
         )
 
         val passkeyRequestCallback = WPCredentialManagerCallback(
-                onFailure = onFailure,
+                onFailure = {
+                    val error = handlePasskeyError(it)
+                    CoroutineScope(Dispatchers.Main).launch { onFailure(error) }
+                    Log.e(TAG, it.stackTraceToString())
+                },
                 onSuccess = { result ->
                     FinishWebauthnChallengePayload().apply {
                         mUserId = requestData.userId
@@ -57,7 +61,7 @@ class PasskeyRequest private constructor(
             )
         } catch (e: GetCredentialException) {
             Log.e(TAG, e.stackTraceToString())
-            onFailure(e)
+            onFailure(handlePasskeyError(e))
         }
     }
 
@@ -86,12 +90,9 @@ class PasskeyRequest private constructor(
 
     class WPCredentialManagerCallback(
         private val onSuccess: (GetCredentialResponse) -> Unit,
-        private val onFailure: (PasskeyError) -> Unit
+        private val onFailure: (GetCredentialException) -> Unit
     ) : CredentialManagerCallback<GetCredentialResponse, GetCredentialException> {
-        override fun onError(e: GetCredentialException) {
-            CoroutineScope(Dispatchers.Main).launch { onFailure(e) }
-            Log.e(TAG, e.stackTraceToString())
-        }
+        override fun onError(e: GetCredentialException) = onFailure(e)
         override fun onResult(result: GetCredentialResponse) = onSuccess(result)
     }
 
@@ -120,7 +121,7 @@ class PasskeyRequest private constructor(
             context: Context,
             requestData: PasskeyRequestData,
             onSuccess: (Action<FinishWebauthnChallengePayload>) -> Unit,
-            onFailure: (Throwable) -> Unit
+            onFailure: (PasskeyError) -> Unit
         ) {
             PasskeyRequest(context, requestData, onSuccess, onFailure)
         }
