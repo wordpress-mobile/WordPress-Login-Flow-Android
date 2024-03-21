@@ -1,5 +1,5 @@
 pluginManagement {
-    gradle.ext.kotlinVersion = '1.8.0'
+    gradle.ext.kotlinVersion = '1.9.10'
     gradle.ext.agpVersion = '8.1.0'
     gradle.ext.automatticPublishToS3Version = '0.8.0'
 
@@ -11,7 +11,7 @@ pluginManagement {
     }
     repositories {
         maven {
-            url 'https://a8c-libs.s3.amazonaws.com/android' 
+            url 'https://a8c-libs.s3.amazonaws.com/android'
             content {
                 includeGroup "com.automattic.android"
                 includeGroup "com.automattic.android.publish-to-s3"
