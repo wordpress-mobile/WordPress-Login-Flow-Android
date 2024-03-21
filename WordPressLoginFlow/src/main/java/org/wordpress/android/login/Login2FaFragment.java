@@ -620,7 +620,7 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
         PasskeyRequestData passkeyRequestData = new PasskeyRequestData(
                 event.mUserId,
                 event.getWebauthnNonce(),
-                event.mJsonResponse.toString()
+                event.mChallengeJson.toString()
         );
 
         PasskeyRequest.create(

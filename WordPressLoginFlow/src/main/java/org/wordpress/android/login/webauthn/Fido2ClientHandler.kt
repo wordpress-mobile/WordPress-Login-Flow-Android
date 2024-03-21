@@ -9,7 +9,7 @@ import com.google.android.gms.fido.fido2.api.common.PublicKeyCredential
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialDescriptor
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRequestOptions
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialType.PUBLIC_KEY
-import org.wordpress.android.fluxc.network.rest.wpcom.auth.webauthn.WebauthnChallengeInfo
+import org.wordpress.android.fluxc.network.rest.wpcom.auth.webauthn.WebauthnChallengeData
 import org.wordpress.android.fluxc.network.rest.wpcom.auth.webauthn.WebauthnCredentialResponse
 import org.wordpress.android.fluxc.store.AccountStore.FinishWebauthnChallengePayload
 
@@ -19,17 +19,17 @@ interface OnPasskeyRequestReadyListener {
 
 class Fido2ClientHandler(
     private val userId: String,
-    private val challengeInfo: WebauthnChallengeInfo
+    private val challengeData: WebauthnChallengeData
 ) {
     fun createIntentSender(
         context: Context,
         listener: OnPasskeyRequestReadyListener
     ) {
         val options = PublicKeyCredentialRequestOptions.Builder()
-                .setRpId(challengeInfo.rpId)
-                .setAllowList(challengeInfo.allowCredentials.map(::parseToCredentialDescriptor))
-                .setChallenge(challengeInfo.challenge.decodeBase64())
-                .setTimeoutSeconds(challengeInfo.timeout.toDouble())
+                .setRpId(challengeData.rpId)
+                .setAllowList(challengeData.allowCredentials.map(::parseToCredentialDescriptor))
+                .setChallenge(challengeData.challenge.decodeBase64())
+                .setTimeoutSeconds(challengeData.timeout.toDouble())
                 .build()
 
         Fido.getFido2ApiClient(context)
@@ -46,7 +46,7 @@ class Fido2ClientHandler(
     fun onCredentialsAvailable(keyCredential: PublicKeyCredential): FinishWebauthnChallengePayload {
         return FinishWebauthnChallengePayload().apply {
             this.mUserId = userId
-            this.mTwoStepNonce = challengeInfo.twoStepNonce
+            this.mTwoStepNonce = challengeData.twoStepNonce
             this.mClientData = keyCredential.toJson()
         }
     }
