@@ -71,8 +71,11 @@ dependencies {
     implementation "com.github.bumptech.glide:glide:$glideVersion"
     kapt "com.github.bumptech.glide:compiler:$glideVersion"
 
+    implementation "com.google.android.gms:play-services-fido:$fidoVersion"
     implementation "androidx.credentials:credentials:$credentialManagerVersion"
     implementation "androidx.credentials:credentials-play-services-auth:$credentialManagerVersion"
+    implementation "com.google.code.gson:gson:2.10.1"
+    implementation "com.google.android.gms:play-services-fido:20.1.0"
 
     // Dagger
     implementation "com.google.dagger:dagger:$daggerVersion"
