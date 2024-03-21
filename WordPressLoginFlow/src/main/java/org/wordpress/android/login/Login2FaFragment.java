@@ -108,6 +108,7 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
 
     private Button mOtpButton;
     private Button mSecurityKeyButton;
+    private Button mPasskeyButton;
     private String mEmailAddress;
     private String mIdToken;
     private String mNonce;
@@ -231,10 +232,18 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
             }
         });
 
+        setupPasskeyButtons(rootView);
+    }
+
+    private void setupPasskeyButtons(ViewGroup rootView) {
         boolean isSecurityKeyEnabled = mSupportedAuthTypes.contains(SupportedAuthTypes.WEBAUTHN);
         mSecurityKeyButton = rootView.findViewById(R.id.login_security_key_button);
         mSecurityKeyButton.setVisibility(isSecurityKeyEnabled ? View.VISIBLE : View.GONE);
-        mSecurityKeyButton.setOnClickListener(view -> doAuthWithSecurityKeyAction());
+        mSecurityKeyButton.setOnClickListener(view -> doAuthWithSecurityKeyAction(true));
+
+        mPasskeyButton = rootView.findViewById(R.id.login_passkey_button);
+        mPasskeyButton.setVisibility(isSecurityKeyEnabled ? View.VISIBLE : View.GONE);
+        mPasskeyButton.setOnClickListener(view -> doAuthWithSecurityKeyAction(false));
     }
 
     @Override
@@ -595,7 +604,7 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
         mSentSmsCode = true;
     }
 
-    private void doAuthWithSecurityKeyAction() {
+    private void doAuthWithSecurityKeyAction(Boolean shouldUseFIDO) {
         mAnalyticsListener.trackUseSecurityKeyClicked();
         if (!NetworkUtils.checkConnection(getActivity())) {
             return;
