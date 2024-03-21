@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -60,6 +61,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static android.app.Activity.RESULT_OK;
 import static android.content.Context.CLIPBOARD_SERVICE;
 
 import dagger.android.support.AndroidSupportInjection;
@@ -306,6 +308,17 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
             mPhoneNumber = savedInstanceState.getString(KEY_SMS_NUMBER);
             mSentSmsCode = savedInstanceState.getBoolean(KEY_SMS_SENT);
         }
+
+        mResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartIntentSenderForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        onCredentialsResultAvailable(result.getData());
+                    } else {
+                        String errorMessage = getString(R.string.login_error_security_key);
+                        handleWebauthnError(AuthenticationErrorType.WEBAUTHN_FAILED, errorMessage);
+                    }
+                });
     }
 
     @Override
@@ -614,7 +627,7 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
         mOldSitesIDs = SiteUtils.getCurrentSiteIds(mSiteStore, false);
 
         StartWebauthnChallengePayload payload = new StartWebauthnChallengePayload(
-                mUserId, mWebauthnNonce);
+                mUserId, mWebauthnNonce, shouldUseFIDO);
         mDispatcher.dispatch(AuthenticationActionBuilder
                 .newStartSecurityKeyChallengeAction(payload));
     }
@@ -625,8 +638,11 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
             handleWebauthnError(event.error.type, getString(R.string.login_error_security_key));
             return;
         }
-
-        startCredentialManagerScenario(event);
+        if (event.isPhysicalKeyChallenge) {
+            startFIDO2Scenario(event);
+        } else {
+            startCredentialManagerScenario(event);
+        }
     }
 
     private void startCredentialManagerScenario(WebauthnChallengeReceived event) {
