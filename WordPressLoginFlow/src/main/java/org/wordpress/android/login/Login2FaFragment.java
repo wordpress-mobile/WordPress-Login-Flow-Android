@@ -617,6 +617,10 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
             return;
         }
 
+        startCredentialManagerScenario(event);
+    }
+
+    private void startCredentialManagerScenario(WebauthnChallengeReceived event) {
         PasskeyRequestData passkeyRequestData = new PasskeyRequestData(
                 event.mUserId,
                 event.getWebauthnNonce(),
@@ -636,6 +640,20 @@ public class Login2FaFragment extends LoginBaseFormFragment<LoginListener> imple
                     return null;
                 }
         );
+    }
+
+    private void startFIDO2Scenario(WebauthnChallengeReceived event) {
+        mFido2ClientHandler = new Fido2ClientHandler(
+                event.mUserId,
+                event.mChallengeData
+        );
+        mFido2ClientHandler.createIntentSender(
+                requireContext(),
+                intent -> {
+                    if (mResultLauncher != null) {
+                        mResultLauncher.launch(intent);
+                    }
+                });
     }
 
     @SuppressWarnings("unused")
