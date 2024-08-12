@@ -16,7 +16,7 @@ ext {
     // libs
     wordpressLintVersion = '2.1.0'
     wordpressUtilsVersion = '3.5.0'
-    wordpressFluxCVersion = 'trunk-ed60798b4d96ec19863c74b0f525e2e20f4525db'
+    wordpressFluxCVersion = '3079-0f189a0307b77a315df19c38292f8d5a86e3f0d5'
     gravatarSdkVersion = '0.2.0'
 
     // main
