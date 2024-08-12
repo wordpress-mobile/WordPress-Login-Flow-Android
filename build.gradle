@@ -23,7 +23,6 @@ ext {
     androidxAppCompatVersion = '1.6.1'
     androidxCoreVersion = '1.12.0'
     androidxConstraintLayoutVersion = '2.0.4'
-    androidxVectorDrawableAnimatedVersion = '1.1.0'
     daggerVersion = '2.47'
     glideVersion = '4.12.0'
     javaxAnnotationVersion = '10.0-b28'
