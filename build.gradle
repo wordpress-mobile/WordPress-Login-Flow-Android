@@ -16,7 +16,7 @@ ext {
     // libs
     wordpressLintVersion = '2.1.0'
     wordpressUtilsVersion = '3.5.0'
-    wordpressFluxCVersion = 'trunk-ed60798b4d96ec19863c74b0f525e2e20f4525db'
+    wordpressFluxCVersion = 'trunk-863f213e0e3a7a4322032e8e8c57a99f77bb48ec'
     gravatarSdkVersion = '0.2.0'
 
     // main
@@ -44,6 +44,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url "https://a8c-libs.s3.amazonaws.com/android/jcenter-mirror"
+            content {
+                includeVersion "com.android.volley", "volley", "1.1.1"
+            }
+        }
     }
 
     if (tasks.findByPath('checkstyle') == null) {
