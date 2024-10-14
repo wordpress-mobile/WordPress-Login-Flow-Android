@@ -340,17 +340,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
         String inputSiteAddress = mRequestedSiteAddress;
         endProgress();
-        if (mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
-            mLoginListener.gotConnectSiteInfo(
-                    new ConnectSiteInfoResult(
-                            mConnectSiteInfoUrl,
-                            mConnectSiteInfoUrlRedirect,
-                            mConnectSiteInfoCalculatedHasJetpack
-                    )
-            );
-        } else {
-            mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
-        }
+        mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
     }
 
     private void askForHttpAuthCredentials(@NonNull final String url, int messageId) {
