@@ -397,7 +397,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
                 mLoginListener.gotConnectSiteInfo(
                         new ConnectSiteInfoResult(
                                 mRequestedSiteAddress,
-                                mRequestedSiteAddress,
+                                null,
                                 mConnectSiteInfoCalculatedHasJetpack,
                                 true
                         )
