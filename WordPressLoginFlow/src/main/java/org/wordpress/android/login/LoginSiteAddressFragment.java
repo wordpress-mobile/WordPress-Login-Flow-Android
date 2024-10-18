@@ -32,6 +32,7 @@ import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.Di
 import org.wordpress.android.fluxc.store.AccountStore;
 import org.wordpress.android.fluxc.store.SiteStore.ConnectSiteInfoPayload;
 import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked;
+import org.wordpress.android.fluxc.store.SiteStore.SiteErrorType;
 import org.wordpress.android.login.util.SiteUtils;
 import org.wordpress.android.login.widgets.WPLoginInputRow;
 import org.wordpress.android.login.widgets.WPLoginInputRow.OnEditorCommitListener;
@@ -339,15 +340,7 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
         // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
         String inputSiteAddress = mRequestedSiteAddress;
         endProgress();
-        if (mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
-            mLoginListener.gotConnectedSiteInfo(
-                    mConnectSiteInfoUrl,
-                    mConnectSiteInfoUrlRedirect,
-                    mConnectSiteInfoCalculatedHasJetpack
-                                               );
-        } else {
-            mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
-        }
+        mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
     }
 
     private void askForHttpAuthCredentials(@NonNull final String url, int messageId) {
@@ -397,13 +390,26 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
                     event.error.type.name(),
                     event.error.message);
 
-            AppLog.e(T.API, "onFetchedConnectSiteInfo has error: " + event.error.message);
-            if (NetworkUtils.isNetworkAvailable(requireContext())) {
-                showError(R.string.invalid_site_url_message);
+            if (event.error.type == SiteErrorType.WPCOM_SITE_SUSPENDED
+                && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
+                // the site is WPCom suspended, we should treat it as non-Jetpack site
+                mConnectSiteInfoCalculatedHasJetpack = false;
+                mLoginListener.gotConnectSiteInfo(
+                        new ConnectSiteInfoResult(
+                                mRequestedSiteAddress,
+                                null,
+                                mConnectSiteInfoCalculatedHasJetpack,
+                                true
+                        )
+                );
             } else {
-                showError(R.string.error_generic_network);
+                AppLog.e(T.API, "onFetchedConnectSiteInfo has error: " + event.error.message);
+                if (NetworkUtils.isNetworkAvailable(requireContext())) {
+                    showError(R.string.invalid_site_url_message);
+                } else {
+                    showError(R.string.error_generic_network);
+                }
             }
-
             endProgressIfNeeded();
         } else {
             boolean hasJetpack = calculateHasJetpack(event.info);
@@ -433,10 +439,12 @@ public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment impleme
             mLoginListener.handleSiteAddressError(siteInfo);
         } else {
             endProgressIfNeeded();
-            mLoginListener.gotConnectedSiteInfo(
-                    mConnectSiteInfoUrl,
-                    mConnectSiteInfoUrlRedirect,
-                    mConnectSiteInfoCalculatedHasJetpack
+            mLoginListener.gotConnectSiteInfo(
+                    new ConnectSiteInfoResult(
+                            mConnectSiteInfoUrl,
+                            mConnectSiteInfoUrlRedirect,
+                            mConnectSiteInfoCalculatedHasJetpack
+                    )
             );
         }
     }
