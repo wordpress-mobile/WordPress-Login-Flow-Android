@@ -47,7 +47,7 @@ public interface LoginListener {
 
     // Login email password callbacks
     void forgotPassword(String url);
-    void useMagicLinkInstead(String email, boolean verifyEmail);
+    void useMagicLinkInstead(String email, boolean verifyEmail, boolean requestAtStart);
     void needs2fa(String email, String password);
     void needs2fa(String email, String password, String userId, String webauthnNonce,
                   String nonceAuthenticator, String nonceBackup, String noncePush,

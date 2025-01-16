@@ -586,11 +586,11 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     }
                     break;
                 case EMAIL_LOGIN_NOT_ALLOWED:
-                    // As a security measure, this user needs to log in using an username and password
+                    // As a security measure, this user can't sign in using their email/password
+                    // combination. Ask them to use Magic Link instead.
                     mAnalyticsListener.trackFailure("Login with username required");
-                    ToastUtils.showToast(getContext(), R.string.error_user_username_instead_of_email, Duration.LONG);
                     if (mLoginListener != null) {
-                        mLoginListener.loginViaWpcomUsernameInstead();
+                        mLoginListener.useMagicLinkInstead(mRequestedEmail, false, false);
                     }
                     break;
                 case GENERIC_ERROR:
