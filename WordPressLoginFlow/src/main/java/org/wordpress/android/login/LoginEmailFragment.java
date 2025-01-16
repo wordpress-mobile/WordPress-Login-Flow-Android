@@ -1,5 +1,7 @@
 package org.wordpress.android.login;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -53,14 +55,10 @@ import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.EditTextUtils;
 import org.wordpress.android.util.HtmlUtils;
 import org.wordpress.android.util.NetworkUtils;
-import org.wordpress.android.util.ToastUtils;
-import org.wordpress.android.util.ToastUtils.Duration;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static android.app.Activity.RESULT_OK;
 
 import dagger.android.support.AndroidSupportInjection;
 
@@ -590,7 +588,7 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     // combination. Ask them to use Magic Link instead.
                     mAnalyticsListener.trackFailure("Login with username required");
                     if (mLoginListener != null) {
-                        mLoginListener.useMagicLinkInstead(mRequestedEmail, false, false);
+                        mLoginListener.useMagicLinkInstead(email, false, false);
                     }
                     break;
                 case GENERIC_ERROR:
