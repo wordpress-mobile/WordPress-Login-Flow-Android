@@ -572,12 +572,9 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     // Will be true if in the Woo app and currently in the WPcom login
                     // flow. We need to check this to know if we should display the
                     // 'No WPcom account found' error screen.
-                    boolean isWooWPcomLoginFlow = false;
-                    if (mLoginListener != null
-                        && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE
-                        && !mOptionalSiteCredsLayout) {
-                        isWooWPcomLoginFlow = true;
-                    }
+                    boolean isWooWPcomLoginFlow = mLoginListener != null
+                                                  && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE
+                                                  && !mOptionalSiteCredsLayout;
 
                     if (mIsSignupFromLoginEnabled || isWooWPcomLoginFlow) {
                         if (mLoginListener != null) {
