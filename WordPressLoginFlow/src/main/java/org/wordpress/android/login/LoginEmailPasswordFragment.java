@@ -193,12 +193,10 @@ public class LoginEmailPasswordFragment extends LoginBaseFormFragment<LoginListe
 
         final Button magicLinkButton = rootView.findViewById(R.id.login_get_email_link);
         magicLinkButton.setVisibility(mAllowMagicLink ? View.VISIBLE : View.GONE);
-        magicLinkButton.setOnClickListener(new OnClickListener() {
-            @Override public void onClick(View v) {
-                if (mLoginListener != null) {
-                    mAnalyticsListener.trackRequestMagicLinkClick();
-                    mLoginListener.useMagicLinkInstead(mEmailAddress, mVerifyMagicLinkEmail, true);
-                }
+        magicLinkButton.setOnClickListener(v -> {
+            if (mLoginListener != null) {
+                mAnalyticsListener.trackRequestMagicLinkClick();
+                mLoginListener.useMagicLinkInstead(mEmailAddress, mVerifyMagicLinkEmail, true, MagicLinkFallbackButton.None);
             }
         });
 
