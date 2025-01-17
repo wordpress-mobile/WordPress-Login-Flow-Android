@@ -153,6 +153,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
                     }
                     break;
                 case UsernameAndPassword:
+                    mAnalyticsListener.trackLoginWithWpComUsernamePasswordClick();
                     if (mLoginListener != null) {
                         mLoginListener.loginViaWpcomUsernameInstead();
                     }
