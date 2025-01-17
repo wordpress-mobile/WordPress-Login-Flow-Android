@@ -77,23 +77,25 @@ public class LoginMagicLinkSentFragment extends Fragment {
 
         final Button fallbackButtonView = view.findViewById(R.id.login_magic_link_fallback_button);
         fallbackButtonView.setVisibility(mFallbackButton == MagicLinkFallbackButton.None ? View.GONE : View.VISIBLE);
-        fallbackButtonView.setText(mFallbackButton == MagicLinkFallbackButton.UsernameAndPassword ?
-                R.string.login_use_wpcom_username_instead :
-                R.string.or_type_your_password);
+        fallbackButtonView.setText(mFallbackButton == MagicLinkFallbackButton.UsernameAndPassword
+                ? R.string.login_use_wpcom_username_instead
+                : R.string.or_type_your_password);
+
         fallbackButtonView.setOnClickListener(v -> {
             switch (mFallbackButton) {
-                case Password -> {
+                case Password:
                     mAnalyticsListener.trackLoginWithPasswordClick();
                     if (mLoginListener != null) {
                         mLoginListener.usePasswordInstead(mEmail);
                     }
-                }
-                case UsernameAndPassword -> {
+                    break;
+                case UsernameAndPassword:
                     if (mLoginListener != null) {
                         mLoginListener.loginViaWpcomUsernameInstead();
                     }
-                }
-                case None -> throw new IllegalStateException("Button should not be visible");
+                    break;
+                case None:
+                    throw new IllegalStateException("Button should not be visible");
             }
         });
 

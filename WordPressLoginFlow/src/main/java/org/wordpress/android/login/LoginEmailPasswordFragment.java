@@ -196,7 +196,8 @@ public class LoginEmailPasswordFragment extends LoginBaseFormFragment<LoginListe
         magicLinkButton.setOnClickListener(v -> {
             if (mLoginListener != null) {
                 mAnalyticsListener.trackRequestMagicLinkClick();
-                mLoginListener.useMagicLinkInstead(mEmailAddress, mVerifyMagicLinkEmail, true, MagicLinkFallbackButton.None);
+                mLoginListener.useMagicLinkInstead(mEmailAddress, mVerifyMagicLinkEmail,
+                        true, MagicLinkFallbackButton.None);
             }
         });
 
