@@ -372,7 +372,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
                     fragmentManager.popBackStack();
                 }
             }
-            mLoginListener.showMagicLinkSentScreen(mEmail, mFallbackButton == MagicLinkFallbackButton.Password);
+            mLoginListener.showMagicLinkSentScreen(mEmail, mFallbackButton);
         }
     }
 }

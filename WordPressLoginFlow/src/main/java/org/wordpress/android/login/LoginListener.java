@@ -37,7 +37,7 @@ public interface LoginListener {
     void onTermsOfServiceClicked();
 
     // Login Request Magic Link callbacks
-    void showMagicLinkSentScreen(String email, boolean allowPassword);
+    void showMagicLinkSentScreen(String email, MagicLinkFallbackButton fallbackButton);
     void usePasswordInstead(String email);
     void helpMagicLinkRequest(String email);
 

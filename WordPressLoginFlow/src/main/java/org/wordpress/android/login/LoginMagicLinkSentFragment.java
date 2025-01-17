@@ -29,24 +29,24 @@ public class LoginMagicLinkSentFragment extends Fragment {
     public static final String TAG = "login_magic_link_sent_fragment_tag";
 
     private static final String ARG_EMAIL_ADDRESS = "ARG_EMAIL_ADDRESS";
-    private static final String ARG_ALLOW_PASSWORD = "ARG_ALLOW_PASSWORD";
+    private static final String ARG_FALLBACK_BUTTON = "ARG_FALLBACK_BUTTON";
 
     private LoginListener mLoginListener;
 
     private String mEmail;
-    private boolean mAllowPassword;
+    private MagicLinkFallbackButton mFallbackButton;
 
     @Inject protected LoginAnalyticsListener mAnalyticsListener;
 
     public static LoginMagicLinkSentFragment newInstance(String email) {
-        return newInstance(email, true);
+        return newInstance(email, MagicLinkFallbackButton.Password);
     }
 
-    public static LoginMagicLinkSentFragment newInstance(String email, boolean allowPassword) {
+    public static LoginMagicLinkSentFragment newInstance(String email, MagicLinkFallbackButton fallbackButton) {
         LoginMagicLinkSentFragment fragment = new LoginMagicLinkSentFragment();
         Bundle args = new Bundle();
         args.putString(ARG_EMAIL_ADDRESS, email);
-        args.putBoolean(ARG_ALLOW_PASSWORD, allowPassword);
+        args.putSerializable(ARG_FALLBACK_BUTTON, fallbackButton);
         fragment.setArguments(args);
         return fragment;
     }
@@ -56,7 +56,7 @@ public class LoginMagicLinkSentFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             mEmail = getArguments().getString(ARG_EMAIL_ADDRESS);
-            mAllowPassword = getArguments().getBoolean(ARG_ALLOW_PASSWORD);
+            mFallbackButton = (MagicLinkFallbackButton) getArguments().getSerializable(ARG_FALLBACK_BUTTON);
         }
 
         setHasOptionsMenu(true);
@@ -75,15 +75,25 @@ public class LoginMagicLinkSentFragment extends Fragment {
             }
         });
 
-        final Button passwordButton = view.findViewById(R.id.login_enter_password);
-        passwordButton.setVisibility(mAllowPassword ? View.VISIBLE : View.GONE);
-        passwordButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAnalyticsListener.trackLoginWithPasswordClick();
-                if (mLoginListener != null) {
-                    mLoginListener.usePasswordInstead(mEmail);
+        final Button fallbackButtonView = view.findViewById(R.id.login_magic_link_fallback_button);
+        fallbackButtonView.setVisibility(mFallbackButton == MagicLinkFallbackButton.None ? View.GONE : View.VISIBLE);
+        fallbackButtonView.setText(mFallbackButton == MagicLinkFallbackButton.UsernameAndPassword ?
+                R.string.login_use_wpcom_username_instead :
+                R.string.or_type_your_password);
+        fallbackButtonView.setOnClickListener(v -> {
+            switch (mFallbackButton) {
+                case Password -> {
+                    mAnalyticsListener.trackLoginWithPasswordClick();
+                    if (mLoginListener != null) {
+                        mLoginListener.usePasswordInstead(mEmail);
+                    }
                 }
+                case UsernameAndPassword -> {
+                    if (mLoginListener != null) {
+                        mLoginListener.loginViaWpcomUsernameInstead();
+                    }
+                }
+                case None -> throw new IllegalStateException("Button should not be visible");
             }
         });
 
