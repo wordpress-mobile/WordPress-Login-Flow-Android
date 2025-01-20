@@ -289,6 +289,7 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
         button.setVisibility(View.GONE);
     }
 
+    @NonNull
     private Spanned formatTosText(int stringResId) {
         final int primaryColorResId = ContextExtensionsKt.getColorResIdFromAttribute(getContext(),
                 com.google.android.material.R.attr.colorSecondary);
