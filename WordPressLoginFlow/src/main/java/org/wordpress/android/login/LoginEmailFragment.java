@@ -189,19 +189,18 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
         // important for accessibility - talkback
         getActivity().setTitle(R.string.email_address_login_title);
 
-        setupEmailInput((WPLoginInputRow) rootView.findViewById(R.id.login_email_row));
+        setupEmailInput(rootView.findViewById(R.id.login_email_row));
 
         if (mOptionalSiteCredsLayout) {
-            setupContinueButton((Button) rootView.findViewById(R.id.login_continue_button));
-            setupSiteCredsButton((Button) rootView.findViewById(R.id.login_site_creds));
-            setupFindEmailHelpButton(
-                    (Button) rootView.findViewById(R.id.login_find_connected_email));
+            setupContinueButton(rootView.findViewById(R.id.login_continue_button));
+            setupSiteCredsButton(rootView.findViewById(R.id.login_site_creds));
+            setupFindEmailHelpButton(rootView.findViewById(R.id.login_find_connected_email));
         } else {
-            setupContinueButton((Button) rootView.findViewById(R.id.login_continue_button));
+            setupContinueButton(rootView.findViewById(R.id.login_continue_button));
             setupTosButtons(
-                    (Button) rootView.findViewById(R.id.continue_tos),
-                    (Button) rootView.findViewById(R.id.continue_with_google_tos));
-            setupSocialButtons((Button) rootView.findViewById(R.id.continue_with_google));
+                    rootView.findViewById(R.id.continue_tos),
+                    rootView.findViewById(R.id.continue_with_google_tos));
+            setupSocialButtons(rootView.findViewById(R.id.continue_with_google));
         }
     }
 
@@ -210,48 +209,36 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
         if (BuildConfig.DEBUG) {
             mEmailInput.getEditText().setText(BuildConfig.DEBUG_WPCOM_LOGIN_EMAIL);
         }
-        mEmailInput.post(new Runnable() {
-            @Override public void run() {
-                if (mEmailInput != null) {
-                    mEmailInput.addTextChangedListener(LoginEmailFragment.this);
-                }
+        mEmailInput.post(() -> {
+            if (mEmailInput != null) {
+                mEmailInput.addTextChangedListener(LoginEmailFragment.this);
             }
         });
 
         mEmailInput.setOnEditorCommitListener(this);
-        mEmailInput.getEditText().setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean hasFocus) {
-                if (hasFocus && !mIsDisplayingEmailHints && !mHasDismissedEmailHints) {
-                    mAnalyticsListener.trackSelectEmailField();
-                    showHintPickerDialogIfNeeded();
-                }
+        mEmailInput.getEditText().setOnFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus && !mIsDisplayingEmailHints && !mHasDismissedEmailHints) {
+                mAnalyticsListener.trackSelectEmailField();
+                showHintPickerDialogIfNeeded();
             }
         });
-        mEmailInput.getEditText().setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        mEmailInput.getEditText().setOnClickListener(view -> {
+            mAnalyticsListener.trackSelectEmailField();
+            if (!mIsDisplayingEmailHints && !mHasDismissedEmailHints) {
                 mAnalyticsListener.trackSelectEmailField();
-                if (!mIsDisplayingEmailHints && !mHasDismissedEmailHints) {
-                    mAnalyticsListener.trackSelectEmailField();
-                    showHintPickerDialogIfNeeded();
-                }
+                showHintPickerDialogIfNeeded();
             }
         });
     }
 
     private void setupContinueButton(Button continueButton) {
-        continueButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View view) {
-                onContinueClicked();
-            }
-        });
+        continueButton.setOnClickListener(view -> onContinueClicked());
     }
 
     private void updateContinueButtonEnabledStatus() {
         View view = getView();
         if (view != null) {
-            Button continueButton = (Button) view.findViewById(R.id.login_continue_button);
+            Button continueButton = view.findViewById(R.id.login_continue_button);
             String currentEmail = mEmailInput.getEditText().getText().toString();
             continueButton.setEnabled(!currentEmail.trim().isEmpty());
         }
@@ -273,11 +260,7 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
             continueTosButton.setVisibility(View.VISIBLE);
             continueWithGoogleTosButton.setVisibility(View.VISIBLE);
 
-            OnClickListener onClickListener = new OnClickListener() {
-                public void onClick(View view) {
-                    mLoginListener.onTermsOfServiceClicked();
-                }
-            };
+            OnClickListener onClickListener = view -> mLoginListener.onTermsOfServiceClicked();
 
             continueTosButton.setOnClickListener(onClickListener);
             continueTosButton.setText(formatTosText(R.string.continue_terms_of_service_text));
@@ -289,28 +272,16 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
     }
 
     private void setupSocialButtons(Button continueWithGoogleButton) {
-        continueWithGoogleButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onGoogleSigninClicked();
-            }
-        });
+        continueWithGoogleButton.setOnClickListener(view -> onGoogleSigninClicked());
     }
 
     private void setupSiteCredsButton(Button continueWithSiteCreds) {
-        continueWithSiteCreds.setOnClickListener(new OnClickListener() {
-            @Override public void onClick(View v) {
-                mLoginListener.loginViaSiteCredentials(mLoginSiteUrl);
-            }
-        });
+        continueWithSiteCreds.setOnClickListener(
+                v -> mLoginListener.loginViaSiteCredentials(mLoginSiteUrl));
     }
 
     private void setupFindEmailHelpButton(Button findConnectedEmail) {
-        findConnectedEmail.setOnClickListener(new OnClickListener() {
-            @Override public void onClick(View v) {
-                mLoginListener.showHelpFindingConnectedEmail();
-            }
-        });
+        findConnectedEmail.setOnClickListener(v -> mLoginListener.showHelpFindingConnectedEmail());
     }
 
     @Override
@@ -572,12 +543,10 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     // Will be true if in the Woo app and currently in the WPcom login
                     // flow. We need to check this to know if we should display the
                     // 'No WPcom account found' error screen.
-                    boolean isWooWPcomLoginFlow = false;
-                    if (mLoginListener != null
-                        && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE
-                        && !mOptionalSiteCredsLayout) {
-                        isWooWPcomLoginFlow = true;
-                    }
+                    boolean isWooWPcomLoginFlow = mLoginListener != null
+                                                  && mLoginListener.getLoginMode()
+                                                     == LoginMode.WOO_LOGIN_MODE
+                                                  && !mOptionalSiteCredsLayout;
 
                     if (mIsSignupFromLoginEnabled || isWooWPcomLoginFlow) {
                         if (mLoginListener != null) {
@@ -694,12 +663,9 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                 next(getCleanedEmail());
             } else {
                 mHasDismissedEmailHints = true;
-                mEmailInput.getEditText().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isAdded()) {
-                            ActivityUtils.showKeyboard(mEmailInput.getEditText());
-                        }
+                mEmailInput.getEditText().postDelayed(() -> {
+                    if (isAdded()) {
+                        ActivityUtils.showKeyboard(mEmailInput.getEditText());
                     }
                 }, getResources().getInteger(android.R.integer.config_mediumAnimTime));
             }
