@@ -322,7 +322,7 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
         final int primaryColorResId = ContextExtensionsKt.getColorResIdFromAttribute(getContext(),
                 com.google.android.material.R.attr.colorSecondary);
         final String primaryColorHtml = HtmlUtils.colorResToHtmlColor(getContext(), primaryColorResId);
-        return Html.fromHtml(getString(stringResId, "<u><font color='" + primaryColorHtml + "'>", "</font></u>"));
+        return Html.fromHtml(getString(stringResId, "<font color='" + primaryColorHtml + "'>", "</font>"));
     }
 
     private void onContinueClicked() {
