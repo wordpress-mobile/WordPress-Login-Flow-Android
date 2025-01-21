@@ -588,7 +588,10 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     // combination. Ask them to use Magic Link instead.
                     mAnalyticsListener.trackFailure("Login with username required");
                     if (mLoginListener != null) {
-                        mLoginListener.useMagicLinkInstead(email, false, false);
+                        mLoginListener.useMagicLinkInstead(email,
+                                false,
+                                false,
+                                MagicLinkFallbackButton.UsernameAndPassword);
                     }
                     break;
                 case GENERIC_ERROR:

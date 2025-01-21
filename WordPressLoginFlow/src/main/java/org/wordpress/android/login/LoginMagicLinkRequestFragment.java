@@ -52,7 +52,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
     private static final String ARG_IS_JETPACK_CONNECT = "ARG_IS_JETPACK_CONNECT";
     private static final String ARG_JETPACK_CONNECT_SOURCE = "ARG_JETPACK_CONNECT_SOURCE";
     private static final String ARG_VERIFY_MAGIC_LINK_EMAIL = "ARG_VERIFY_MAGIC_LINK_EMAIL";
-    private static final String ARG_ALLOW_PASSWORD = "ARG_ALLOW_PASSWORD";
+    private static final String ARG_FALLBACK_BUTTON = "ARG_FALLBACK_BUTTON";
     private static final String ARG_FORCE_REQUEST_AT_START = "ARG_FORCE_REQUEST_AT_START";
 
     private static final String ERROR_KEY = "error";
@@ -70,7 +70,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
     private boolean mInProgress;
     private boolean mIsJetpackConnect;
     private boolean mVerifyMagicLinkEmail;
-    private boolean mAllowPassword;
+    private MagicLinkFallbackButton mFallbackButton;
     private boolean mForceRequestAtStart;
 
     @Inject protected Dispatcher mDispatcher;
@@ -80,12 +80,13 @@ public class LoginMagicLinkRequestFragment extends Fragment {
     public static LoginMagicLinkRequestFragment newInstance(String email, AuthEmailPayloadScheme scheme,
                                                             boolean isJetpackConnect, String jetpackConnectSource,
                                                             boolean verifyEmail) {
-        return newInstance(email, scheme, isJetpackConnect, jetpackConnectSource, verifyEmail, true, false);
+        return newInstance(email, scheme, isJetpackConnect, jetpackConnectSource,
+                verifyEmail, MagicLinkFallbackButton.Password, false);
     }
 
     public static LoginMagicLinkRequestFragment newInstance(String email, AuthEmailPayloadScheme scheme,
                                                             boolean isJetpackConnect, String jetpackConnectSource,
-                                                            boolean verifyEmail, boolean allowPassword,
+                                                            boolean verifyEmail, MagicLinkFallbackButton fallbackButton,
                                                             boolean forceRequestAtStart) {
         LoginMagicLinkRequestFragment fragment = new LoginMagicLinkRequestFragment();
         Bundle args = new Bundle();
@@ -94,7 +95,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
         args.putBoolean(ARG_IS_JETPACK_CONNECT, isJetpackConnect);
         args.putString(ARG_JETPACK_CONNECT_SOURCE, jetpackConnectSource);
         args.putBoolean(ARG_VERIFY_MAGIC_LINK_EMAIL, verifyEmail);
-        args.putBoolean(ARG_ALLOW_PASSWORD, allowPassword);
+        args.putSerializable(ARG_FALLBACK_BUTTON, fallbackButton);
         args.putBoolean(ARG_FORCE_REQUEST_AT_START, forceRequestAtStart);
         fragment.setArguments(args);
         return fragment;
@@ -121,7 +122,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
             mIsJetpackConnect = getArguments().getBoolean(ARG_IS_JETPACK_CONNECT);
             mJetpackConnectSource = getArguments().getString(ARG_JETPACK_CONNECT_SOURCE);
             mVerifyMagicLinkEmail = getArguments().getBoolean(ARG_VERIFY_MAGIC_LINK_EMAIL);
-            mAllowPassword = getArguments().getBoolean(ARG_ALLOW_PASSWORD);
+            mFallbackButton = (MagicLinkFallbackButton) getArguments().getSerializable(ARG_FALLBACK_BUTTON);
             mForceRequestAtStart = getArguments().getBoolean(ARG_FORCE_REQUEST_AT_START);
         }
 
@@ -132,23 +133,33 @@ public class LoginMagicLinkRequestFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.login_magic_link_request_screen, container, false);
         mRequestMagicLinkButton = view.findViewById(R.id.login_request_magic_link);
-        mRequestMagicLinkButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAnalyticsListener.trackRequestMagicLinkClick();
-                dispatchMagicLinkRequest();
-            }
+        mRequestMagicLinkButton.setOnClickListener(v -> {
+            mAnalyticsListener.trackRequestMagicLinkClick();
+            dispatchMagicLinkRequest();
         });
 
-        final Button passwordButton = view.findViewById(R.id.login_enter_password);
-        passwordButton.setVisibility(mAllowPassword ? View.VISIBLE : View.GONE);
-        passwordButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAnalyticsListener.trackLoginWithPasswordClick();
-                if (mLoginListener != null) {
-                    mLoginListener.usePasswordInstead(mEmail);
-                }
+        final Button fallbackButtonView = view.findViewById(R.id.login_magic_link_fallback_button);
+        fallbackButtonView.setVisibility(mFallbackButton == MagicLinkFallbackButton.None ? View.GONE : View.VISIBLE);
+        fallbackButtonView.setText(mFallbackButton == MagicLinkFallbackButton.UsernameAndPassword
+                ? R.string.login_use_wpcom_username_instead
+                : R.string.or_type_your_password);
+
+        fallbackButtonView.setOnClickListener(v -> {
+            switch (mFallbackButton) {
+                case Password:
+                    mAnalyticsListener.trackLoginWithPasswordClick();
+                    if (mLoginListener != null) {
+                        mLoginListener.usePasswordInstead(mEmail);
+                    }
+                    break;
+                case UsernameAndPassword:
+                    mAnalyticsListener.trackLoginWithWpComUsernamePasswordClick();
+                    if (mLoginListener != null) {
+                        mLoginListener.loginViaWpcomUsernameInstead();
+                    }
+                    break;
+                case None:
+                    throw new IllegalStateException("Button should not be visible");
             }
         });
 
@@ -365,7 +376,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
                     fragmentManager.popBackStack();
                 }
             }
-            mLoginListener.showMagicLinkSentScreen(mEmail, mAllowPassword);
+            mLoginListener.showMagicLinkSentScreen(mEmail, mFallbackButton);
         }
     }
 }
