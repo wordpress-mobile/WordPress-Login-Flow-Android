@@ -59,6 +59,7 @@ interface LoginAnalyticsListener {
     fun trackSubmitClicked()
     fun trackRequestMagicLinkClick()
     fun trackLoginWithPasswordClick()
+    fun trackLoginWithWpComUsernamePasswordClick()
     fun trackShowHelpClick()
     fun trackDismissDialog()
     fun trackSelectEmailField()
