@@ -1,5 +1,7 @@
 package org.wordpress.android.login;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -53,14 +55,10 @@ import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.EditTextUtils;
 import org.wordpress.android.util.HtmlUtils;
 import org.wordpress.android.util.NetworkUtils;
-import org.wordpress.android.util.ToastUtils;
-import org.wordpress.android.util.ToastUtils.Duration;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static android.app.Activity.RESULT_OK;
 
 import dagger.android.support.AndroidSupportInjection;
 
@@ -572,12 +570,9 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     // Will be true if in the Woo app and currently in the WPcom login
                     // flow. We need to check this to know if we should display the
                     // 'No WPcom account found' error screen.
-                    boolean isWooWPcomLoginFlow = false;
-                    if (mLoginListener != null
-                        && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE
-                        && !mOptionalSiteCredsLayout) {
-                        isWooWPcomLoginFlow = true;
-                    }
+                    boolean isWooWPcomLoginFlow = mLoginListener != null
+                                                  && mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE
+                                                  && !mOptionalSiteCredsLayout;
 
                     if (mIsSignupFromLoginEnabled || isWooWPcomLoginFlow) {
                         if (mLoginListener != null) {
@@ -589,11 +584,14 @@ public class LoginEmailFragment extends LoginBaseFormFragment<LoginListener> imp
                     }
                     break;
                 case EMAIL_LOGIN_NOT_ALLOWED:
-                    // As a security measure, this user needs to log in using an username and password
+                    // As a security measure, this user can't sign in using their email/password
+                    // combination. Ask them to use Magic Link instead.
                     mAnalyticsListener.trackFailure("Login with username required");
-                    ToastUtils.showToast(getContext(), R.string.error_user_username_instead_of_email, Duration.LONG);
                     if (mLoginListener != null) {
-                        mLoginListener.loginViaWpcomUsernameInstead();
+                        mLoginListener.useMagicLinkInstead(email,
+                                false,
+                                false,
+                                MagicLinkFallbackButton.UsernameAndPassword);
                     }
                     break;
                 case GENERIC_ERROR:

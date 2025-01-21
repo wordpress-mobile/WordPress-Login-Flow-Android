@@ -33,7 +33,7 @@
                 android:text="@string/login_magic_links_label" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/login_enter_password"
+                android:id="@+id/login_magic_link_fallback_button"
                 style="@style/Widget.LoginFlow.Button.Tertiary"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

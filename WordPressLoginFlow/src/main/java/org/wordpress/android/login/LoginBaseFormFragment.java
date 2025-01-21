@@ -243,6 +243,11 @@ public abstract class LoginBaseFormFragment<LoginListenerType> extends Fragment 
             mBottomButton.setEnabled(false);
         }
 
+        if (mProgressDialog != null) {
+            mProgressDialog.setOnCancelListener(null);
+            mProgressDialog.cancel();
+        }
+
         mProgressDialog =
                 ProgressDialog.show(getActivity(), "", getActivity().getString(getProgressBarText()), true, cancellable,
                         new DialogInterface.OnCancelListener() {
