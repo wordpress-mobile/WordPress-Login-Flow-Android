@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -76,12 +77,17 @@ public class LoginSiteAddressHelpDialogFragment extends DialogFragment {
             mAnalyticsListener.trackUrlHelpScreenViewed();
         }
         AlertDialog dialog = alert.create();
+        dialog.setOnShowListener(shownDialog -> setNeutralButton(dialog.getButton(BUTTON_NEUTRAL)));
+
+        return dialog;
+    }
+
+    private void setNeutralButton(@NonNull Button button) {
         Context context = getContext();
         if (context != null) {
             int textColor = context.getColor(R.color.login_dialog_neutral_text_button_color);
-            dialog.setOnShowListener(shownDialog -> dialog.getButton(BUTTON_NEUTRAL).setTextColor(textColor));
+            button.setTextColor(textColor);
+            button.setAllCaps(false);
         }
-
-        return dialog;
     }
 }
