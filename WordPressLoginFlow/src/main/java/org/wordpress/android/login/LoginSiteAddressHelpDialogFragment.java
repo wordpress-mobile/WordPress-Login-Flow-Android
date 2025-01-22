@@ -1,5 +1,7 @@
 package org.wordpress.android.login;
 
+import static android.content.DialogInterface.BUTTON_NEUTRAL;
+
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -39,7 +41,8 @@ public class LoginSiteAddressHelpDialogFragment extends DialogFragment {
         }
     }
 
-    @Override public void onDetach() {
+    @Override
+    public void onDetach() {
         super.onDetach();
         mLoginListener = null;
     }
@@ -72,7 +75,13 @@ public class LoginSiteAddressHelpDialogFragment extends DialogFragment {
         if (savedInstanceState == null) {
             mAnalyticsListener.trackUrlHelpScreenViewed();
         }
+        AlertDialog dialog = alert.create();
+        Context context = getContext();
+        if (context != null) {
+            int textColor = context.getColor(R.color.login_dialog_neutral_text_button_color);
+            dialog.setOnShowListener(shownDialog -> dialog.getButton(BUTTON_NEUTRAL).setTextColor(textColor));
+        }
 
-        return alert.create();
+        return dialog;
     }
 }
