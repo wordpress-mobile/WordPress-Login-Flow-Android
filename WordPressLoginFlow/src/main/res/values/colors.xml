@@ -24,4 +24,5 @@
     <!-- Login -->
     <color name="login_secondary_button_icon_tint_color">#c8d7e1</color>
     <color name="login_notification_accent_color">#0087be</color>
+    <color name="login_dialog_neutral_text_button_color">@color/wp_blue_50</color>
 </resources>

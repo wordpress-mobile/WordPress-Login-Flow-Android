@@ -1,9 +1,11 @@
 package org.wordpress.android.login;
 
+import static android.content.DialogInterface.BUTTON_NEUTRAL;
+
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -35,11 +37,12 @@ public class LoginSiteAddressHelpDialogFragment extends DialogFragment {
         if (context instanceof LoginListener) {
             mLoginListener = (LoginListener) context;
         } else {
-            throw new RuntimeException(context.toString() + " must implement LoginListener");
+            throw new RuntimeException(context + " must implement LoginListener");
         }
     }
 
-    @Override public void onDetach() {
+    @Override
+    public void onDetach() {
         super.onDetach();
         mLoginListener = null;
     }
@@ -56,23 +59,30 @@ public class LoginSiteAddressHelpDialogFragment extends DialogFragment {
 
         //noinspection InflateParams
         alert.setView(getActivity().getLayoutInflater().inflate(R.layout.login_alert_site_address_help, null));
-        alert.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                mAnalyticsListener.trackDismissDialog();
-                dialog.dismiss();
-            }
+        alert.setPositiveButton(android.R.string.ok, (dialog, whichButton) -> {
+            mAnalyticsListener.trackDismissDialog();
+            dialog.dismiss();
         });
-        alert.setNeutralButton(R.string.login_site_address_more_help, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mLoginListener.helpFindingSiteAddress(mAccountStore.getAccount().getUserName(), mSiteStore);
-            }
-        });
+        alert.setNeutralButton(R.string.login_site_address_more_help,
+                (dialog, which) -> mLoginListener.helpFindingSiteAddress(
+                        mAccountStore.getAccount().getUserName(),
+                        mSiteStore));
 
         if (savedInstanceState == null) {
             mAnalyticsListener.trackUrlHelpScreenViewed();
         }
+        AlertDialog dialog = alert.create();
+        dialog.setOnShowListener(shownDialog -> setNeutralButton(dialog.getButton(BUTTON_NEUTRAL)));
 
-        return alert.create();
+        return dialog;
+    }
+
+    private void setNeutralButton(@NonNull Button button) {
+        Context context = getContext();
+        if (context != null) {
+            int textColor = context.getColor(R.color.login_dialog_neutral_text_button_color);
+            button.setTextColor(textColor);
+            button.setAllCaps(false);
+        }
     }
 }
